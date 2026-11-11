@@ -141,7 +141,7 @@ class StorageService {
   // --- Firebase Background Sync ---
   private async syncToFirestore(collectionName: string, id: string, data: any) {
     try {
-      if (!this.db.settings.firebase_sync_enabled) return;
+      if (!db || !this.db.settings.firebase_sync_enabled) return;
       await setDoc(doc(db, collectionName, id), data, { merge: true });
     } catch (e) {
       console.warn(`Firestore sync note for ${collectionName}/${id}:`, e);
@@ -150,7 +150,7 @@ class StorageService {
 
   private async deleteFromFirestore(collectionName: string, id: string) {
     try {
-      if (!this.db.settings.firebase_sync_enabled) return;
+      if (!db || !this.db.settings.firebase_sync_enabled) return;
       await deleteDoc(doc(db, collectionName, id));
     } catch (e) {
       console.warn(`Firestore delete note for ${collectionName}/${id}:`, e);
@@ -159,6 +159,7 @@ class StorageService {
 
   public async syncFromFirebase() {
     try {
+      if (!db) return;
       // Sync products
       const pSnap = await getDocs(collection(db, 'products'));
       if (!pSnap.empty) {
