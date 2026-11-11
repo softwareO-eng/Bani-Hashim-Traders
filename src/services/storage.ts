@@ -94,8 +94,8 @@ export const INITIAL_SETTINGS: ShopSettings = {
   invoice_prefix: 'BHT-2026',
   tax_rate: 0,
   currency_symbol: 'Rs',
-  receipt_footer_en: 'Accessories once sold can only be exchanged within 3 days. No cash refund.',
-  receipt_footer_ur: 'فروخت شدہ سامان صرف 3 دن میں تبدیل ہو سکتا ہے۔ نقد واپسی نہیں ہوگی۔',
+  receipt_footer_en: 'Thank you for shopping with us!',
+  receipt_footer_ur: 'ہمارے ساتھ خریداری کرنے کا شکریہ!',
   printer_type: '80mm',
   firebase_project_id: firebaseConfig.projectId,
   firebase_database_id: firebaseConfig.firestoreDatabaseId,
@@ -134,11 +134,12 @@ class StorageService {
       this.persist();
     }
 
-    if (this.db.settings && this.db.settings.shop_name_en !== 'Bani Hashim Traders') {
-      this.db.settings.shop_name_en = 'Bani Hashim Traders';
-      this.db.settings.shop_name_ur = 'بنی ہاشم ٹریڈرز';
-      this.db.settings.invoice_prefix = 'BHT-2026';
-      this.persist();
+    if (this.db.settings) {
+      if (this.db.settings.receipt_footer_en?.includes('Accessories')) {
+        this.db.settings.receipt_footer_en = 'Thank you for shopping with us!';
+        this.db.settings.receipt_footer_ur = 'ہمارے ساتھ خریداری کرنے کا شکریہ!';
+        this.persist();
+      }
     }
 
     const savedUser = safeStorageGet(CURRENT_USER_KEY);
@@ -721,9 +722,9 @@ class StorageService {
   }
 
   // DELETE Everywhere: Delete Invoice completely
-  public deleteInvoice(invoiceId: string) {
+  public async deleteInvoice(invoiceId: string) {
     this.db.invoices = this.db.invoices.filter(i => i.id !== invoiceId);
-    this.deleteFromFirestore('invoices', invoiceId);
+    await this.deleteFromFirestore('invoices', invoiceId);
     this.persist();
   }
 

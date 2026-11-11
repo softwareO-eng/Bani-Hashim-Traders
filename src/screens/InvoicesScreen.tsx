@@ -48,9 +48,9 @@ export const InvoicesScreen: React.FC = () => {
   }, [invoices, searchQuery, filterType]);
 
   // DELETE EVERYWHERE: Delete Invoice permanently
-  const handleDeleteInvoice = (invoiceId: string, number: string) => {
+  const handleDeleteInvoice = async (invoiceId: string, number: string) => {
     if (confirm(isRTL ? `کیا آپ واقعی انوائس نمبر "${number}" کو مستقل طور پر حذف کرنا چاہتے ہیں؟` : `Are you sure you want to permanently delete invoice "${number}"?`)) {
-      storage.deleteInvoice(invoiceId);
+      await storage.deleteInvoice(invoiceId);
       loadInvoices();
     }
   };

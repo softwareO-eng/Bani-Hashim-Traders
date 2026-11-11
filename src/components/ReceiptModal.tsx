@@ -38,11 +38,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     container.style.zIndex = '-9999';
     container.style.opacity = '1';
     container.style.pointerEvents = 'none';
-    container.style.width = printFormat === 'full' ? '650px' : printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
+    container.style.width = printFormat === 'full' ? '750px' : printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
     container.style.background = '#ffffff';
     container.style.color = '#000000';
     container.style.fontFamily = 'Arial, sans-serif';
-    container.style.padding = '24px';
+    container.style.padding = '32px';
     container.style.boxSizing = 'border-box';
     container.style.fontSize = printFormat === 'full' ? '14px' : '12px';
 
