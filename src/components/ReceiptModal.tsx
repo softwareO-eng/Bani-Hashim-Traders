@@ -164,26 +164,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
 
     document.body.appendChild(container);
     try {
-      // Force initial styles to prevent inheritance of global Tailwind CSS
-      container.style.all = 'initial';
-      container.style.display = 'block';
-      container.style.backgroundColor = '#ffffff';
-      container.style.color = '#000000';
-      container.style.fontFamily = 'Arial, sans-serif';
-
       const canvas = await html2canvas(container, {
-        scale: 1, // Reduced scale for better mobile performance and compatibility
+        scale: 1,
         useCORS: true,
         backgroundColor: '#ffffff',
-        // Explicitly ignore global stylesheets
-        ignoreElements: (element) => element.tagName === 'STYLE' || element.tagName === 'LINK',
-        allowTaint: false,
-        logging: true // Enabled logging temporarily for debugging
+        logging: true
       });
       return canvas;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Canvas generation error:', err);
-      throw err;
+      throw new Error(err.toString());
     } finally {
       document.body.removeChild(container);
     }
