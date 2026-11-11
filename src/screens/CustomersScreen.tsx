@@ -240,6 +240,15 @@ Contact: ${settings.shop_phone}`;
 
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setFolderCustomerId(cust.id)}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+                            title="Open Customer Folder & Dossier"
+                          >
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            <span>{isRTL ? 'فولڈر کھاتہ' : 'Folder'}</span>
+                          </button>
+
                           {hasUdhaar && (
                             <button
                               onClick={() => {
@@ -264,14 +273,6 @@ Contact: ${settings.shop_phone}`;
                               <MessageCircle className="w-3.5 h-3.5" />
                             </button>
                           )}
-
-                          <button
-                            onClick={() => setViewingCustomer(cust)}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
-                            title="Ledger History"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </td>
 
@@ -379,55 +380,7 @@ Contact: ${settings.shop_phone}`;
         </div>
       )}
 
-      {/* Customer Ledger Modal */}
-      {viewingCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">
-                  {t('customers.customer_history')}: {viewingCustomer.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-mono">
-                  {isRTL ? 'موجودہ ادھار بقایا:' : 'Current Udhaar:'} <span className="font-bold text-red-600">{formatPKR(viewingCustomer.balance)}</span>
-                </p>
-              </div>
-              <button onClick={() => setViewingCustomer(null)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <div className="p-4 flex-1 overflow-y-auto space-y-2">
-              {invoices.filter(i => i.customer_id === viewingCustomer.id).length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-6 text-center">No invoices recorded for this customer.</p>
-              ) : (
-                invoices.filter(i => i.customer_id === viewingCustomer.id).map(inv => (
-                  <div key={inv.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-                    <div>
-                      <div className="font-mono font-bold text-slate-800">{inv.number}</div>
-                      <div className="text-[11px] text-slate-500">{new Date(inv.date).toLocaleDateString()}</div>
-                    </div>
-                    <div className="text-end">
-                      <div className="font-mono font-bold text-slate-900">{formatPKR(inv.total)}</div>
-                      {inv.balance > 0 ? (
-                        <div className="text-[10px] text-red-600 font-bold">Unpaid: {formatPKR(inv.balance)}</div>
-                      ) : (
-                        <div className="text-[10px] text-emerald-600 font-bold">Paid</div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="p-3 bg-slate-50 border-t border-slate-200 text-end">
-              <button onClick={() => setViewingCustomer(null)} className="px-4 py-1.5 text-xs font-semibold bg-slate-800 text-white rounded-lg">
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* FAST ADD CUSTOMER (NO FILL OUT FRICTION - ONLY NAME NEEDED) */}
       {isAddCustomerOpen && (
@@ -503,6 +456,17 @@ Contact: ${settings.shop_phone}`;
             </form>
           </div>
         </div>
+      )}
+
+      {/* Dedicated Customer Folder Dossier Modal */}
+      {folderCustomerId && (
+        <CustomerFolderModal
+          customerId={folderCustomerId}
+          onClose={() => setFolderCustomerId(null)}
+          onDataChanged={() => {
+            loadData();
+          }}
+        />
       )}
 
     </div>

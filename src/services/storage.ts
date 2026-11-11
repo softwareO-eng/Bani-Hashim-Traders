@@ -1,6 +1,6 @@
 import { 
   User, Category, Product, ProductVariant, StockMove, Customer, 
-  Invoice, InvoiceItem, Payment, Supplier, Expense, ShopSettings 
+  Invoice, InvoiceItem, Payment, PaymentMethod, Supplier, Expense, ShopSettings 
 } from '../types';
 import { db } from './firebase';
 import { 
