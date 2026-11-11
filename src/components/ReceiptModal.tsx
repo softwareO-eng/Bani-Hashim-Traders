@@ -117,6 +117,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         <div style="border-top: 1px dashed #d1d5db; padding-top: 12px; text-align: center; font-size: 11px; color: #6b7280;">
           <p style="margin: 0 0 4px 0;">${footerText}</p>
           <p style="margin: 0; font-weight: bold; color: #1f2937;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+          <p style="margin: 4px 0 0 0; font-style: italic; color: #4b5563;">${isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}</p>
         </div>
       `;
     } else {
@@ -156,16 +157,28 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         <div style="text-align: center; font-size: 10px; color: #666;">
           <p style="margin: 0 0 4px 0;">${footerText}</p>
           <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+          <p style="margin: 4px 0 0 0; font-style: italic;">${isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}</p>
         </div>
       `;
     }
 
     document.body.appendChild(container);
     try {
+      // Force initial styles to prevent inheritance of global Tailwind CSS
+      container.style.all = 'initial';
+      container.style.display = 'block';
+      container.style.backgroundColor = '#ffffff';
+      container.style.color = '#000000';
+      container.style.fontFamily = 'Arial, sans-serif';
+
       const canvas = await html2canvas(container, {
         scale: 2.5,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        // Explicitly ignore global stylesheets
+        ignoreElements: (element) => element.tagName === 'STYLE' || element.tagName === 'LINK',
+        allowTaint: false,
+        logging: false
       });
       return canvas;
     } finally {
@@ -496,9 +509,9 @@ Phone: ${settings.shop_phone}`;
               <p className="font-mono font-bold text-slate-800 tracking-wider">
                 *** {isUrdu ? 'تشریف آوری کا شکریہ' : 'THANK YOU FOR YOUR BUSINESS'} ***
               </p>
-              <div className="text-[9px] text-slate-400">
-                PakMobile POS v1.0 • Built for Pakistan
-              </div>
+              <p className="italic text-slate-600">
+                {isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}
+              </p>
             </div>
 
           </div>
