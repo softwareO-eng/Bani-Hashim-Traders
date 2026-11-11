@@ -29,154 +29,32 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     window.print();
   };
 
-  // Helper: Generate clean canvas without Tailwind oklch color errors
   const generateCanvas = async () => {
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.left = '0';
     container.style.zIndex = '-9999';
-    container.style.opacity = '1';
-    container.style.pointerEvents = 'none';
-    container.style.width = printFormat === 'full' ? '750px' : printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
+    container.style.width = '600px'; // Fixed width
+    container.style.padding = '20px';
     container.style.background = '#ffffff';
     container.style.color = '#000000';
-    container.style.fontFamily = 'Arial, sans-serif';
-    container.style.padding = '40px'; // Increased padding
-    container.style.boxSizing = 'border-box';
-    container.style.fontSize = printFormat === 'full' ? '14px' : '12px';
-
-    const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
-    const shopAddress = isUrdu ? settings.shop_address_ur : settings.shop_address_en;
-    const footerText = isUrdu ? settings.receipt_footer_ur : settings.receipt_footer_en;
-
-    if (printFormat === 'full') {
-      container.innerHTML = `
-        <div style="border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <h1 style="font-size: 22px; font-weight: bold; color: #065f46; margin: 0 0 4px 0;">${shopName}</h1>
-            <p style="font-size: 12px; color: #4b5563; margin: 0 0 2px 0;">${shopAddress}</p>
-            <p style="font-size: 12px; color: #4b5563; margin: 0;">Phone: ${settings.shop_phone}</p>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 18px; font-weight: bold; color: #1f2937;">INVOICE</div>
-            <div style="font-size: 13px; font-family: monospace; font-weight: bold; color: #059669; margin-top: 2px;">${invoice.number}</div>
-            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Date: ${new Date(invoice.date).toLocaleString()}</div>
-          </div>
-        </div>
-
-        ${invoice.status === 'cancelled' ? '<div style="background: #fee2e2; border: 1px solid #f87171; color: #b91c1c; padding: 8px; font-weight: bold; text-align: center; margin-bottom: 12px; border-radius: 6px;">*** CANCELLED INVOICE ***</div>' : ''}
-
-        <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between;">
-          <div>
-            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Billed To:</div>
-            <div style="font-size: 14px; font-weight: bold; color: #111827; margin-top: 2px;">${invoice.customer_name || 'Walk-in Customer'}</div>
-            <div style="font-size: 12px; color: #4b5563; font-family: monospace; margin-top: 1px;">${invoice.customer_phone || 'No phone'}</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Served By:</div>
-            <div style="font-size: 13px; font-weight: bold; color: #111827; margin-top: 2px;">${invoice.user_name}</div>
-            <div style="font-size: 12px; color: #4b5563; text-transform: uppercase; margin-top: 1px;">${invoice.payment_method}</div>
-          </div>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px;">
-          <thead>
-            <tr style="background: #065f46; color: #ffffff;">
-              <th style="padding: 8px 10px; text-align: left;">Item Description & Model</th>
-              <th style="padding: 8px 10px; text-align: center;">Qty</th>
-              <th style="padding: 8px 10px; text-align: right;">Price</th>
-              <th style="padding: 8px 10px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${invoice.items.map((it, idx) => `
-              <tr style="border-bottom: 1px solid #e5e7eb; background: ${idx % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-                <td style="padding: 8px 10px;">
-                  <div style="font-weight: bold; color: #111827;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en}</div>
-                  <div style="font-size: 10px; color: #6b7280;">${it.variant_title || ''}</div>
-                </td>
-                <td style="padding: 8px 10px; text-align: center; font-family: monospace;">${it.qty}</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: monospace;">${formatPKR(it.unit_price).replace(/^(Rs|روپے)\s*/, '')}</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: bold;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-          <div style="width: 260px; background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; font-size: 12px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Subtotal:</span> <span style="font-family: monospace; font-weight: bold;">${formatPKR(invoice.subtotal)}</span></div>
-            ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #047857;"><span>Discount:</span> <span style="font-family: monospace;">-${formatPKR(invoice.discount)}</span></div>` : ''}
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px solid #d1d5db; padding-top: 6px; margin-bottom: 6px;"><span>Grand Total:</span> <span style="font-family: monospace; color: #065f46;">${formatPKR(invoice.total)}</span></div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Paid Amount:</span> <span style="font-family: monospace; font-weight: bold;">${formatPKR(invoice.paid)}</span></div>
-            ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; border-top: 1px dashed #d1d5db; padding-top: 4px; margin-top: 4px;"><span>Udhaar Balance:</span> <span style="font-family: monospace;">${formatPKR(invoice.balance)}</span></div>` : '<div style="color: #059669; font-weight: bold; text-align: center; margin-top: 4px;">✓ FULLY PAID</div>'}
-          </div>
-        </div>
-
-        <div style="border-top: 1px dashed #d1d5db; padding-top: 12px; text-align: center; font-size: 11px; color: #6b7280;">
-          <p style="margin: 0 0 4px 0;">${footerText}</p>
-          <p style="margin: 0; font-weight: bold; color: #1f2937;">*** THANK YOU FOR YOUR BUSINESS ***</p>
-          ${(isUrdu ? settings.custom_terms_ur : settings.custom_terms_en) ? `<p style="margin: 4px 0 0 0; font-style: italic; color: #4b5563;">${isUrdu ? settings.custom_terms_ur : settings.custom_terms_en}</p>` : ''}
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div style="text-align: center; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-          <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 4px 0;">${shopName}</h2>
-          <p style="font-size: 11px; color: #555; margin: 0 0 2px 0;">${shopAddress}</p>
-          <p style="font-size: 11px; color: #555; margin: 0;">Phone: ${settings.shop_phone}</p>
-          ${invoice.status === 'cancelled' ? '<div style="margin-top:4px; color:red; font-weight:bold;">*** CANCELLED INVOICE ***</div>' : ''}
-        </div>
-        <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between;"><span>Invoice No:</span> <b>${invoice.number}</b></div>
-          <div style="display: flex; justify-content: space-between;"><span>Date:</span> <span>${new Date(invoice.date).toLocaleString()}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>Customer:</span> <span>${invoice.customer_name || 'Walk-in'}</span></div>
-        </div>
-        <div style="border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-          <div style="display: flex; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;">
-            <span style="flex: 1;">Item</span>
-            <span style="width: 30px; text-align: center;">Qty</span>
-            <span style="width: 60px; text-align: right;">Total</span>
-          </div>
-          ${invoice.items.map(it => `
-            <div style="display: flex; margin-bottom: 4px;">
-              <span style="flex: 1;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || ''})</span>
-              <span style="width: 30px; text-align: center;">${it.qty}</span>
-              <span style="width: 60px; text-align: right;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</span>
-            </div>
-          `).join('')}
-        </div>
-        <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between;"><span>Subtotal:</span> <span>${formatPKR(invoice.subtotal)}</span></div>
-          ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; color: #047857;"><span>Discount:</span> <span>-${formatPKR(invoice.discount)}</span></div>` : ''}
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 4px;"><span>Grand Total:</span> <span>${formatPKR(invoice.total)}</span></div>
-          <div style="display: flex; justify-content: space-between; margin-top: 4px;"><span>Paid (${invoice.payment_method}):</span> <span>${formatPKR(invoice.paid)}</span></div>
-          ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; margin-top: 4px;"><span>Udhaar Balance:</span> <span>${formatPKR(invoice.balance)}</span></div>` : ''}
-        </div>
-        <div style="text-align: center; font-size: 10px; color: #666;">
-          <p style="margin: 0 0 4px 0;">${footerText}</p>
-          <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
-          ${(isUrdu ? settings.custom_terms_ur : settings.custom_terms_en) ? `<p style="margin: 4px 0 0 0; font-style: italic;">${isUrdu ? settings.custom_terms_ur : settings.custom_terms_en}</p>` : ''}
-        </div>
-      `;
-    }
+    
+    // Only render very minimal content to isolate failure
+    container.innerHTML = `<div><h1>Invoice: ${invoice.number}</h1><p>Test Content</p></div>`;
 
     document.body.appendChild(container);
-    // Increased wait time for rendering
     await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
       const canvas = await html2canvas(container, {
         scale: 1,
-        useCORS: true,
-        backgroundColor: '#ffffff',
         logging: true
       });
       return canvas;
     } catch (err: any) {
       console.error('Canvas generation error:', err);
-      throw new Error(err?.message || err?.toString() || 'Unknown error');
+      throw err;
     } finally {
       document.body.removeChild(container);
     }
@@ -190,13 +68,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
-      link.download = `Invoice_${invoice.number}_Bani_Hashim_Traders.png`;
+      link.download = `Invoice_${invoice.number}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err: any) {
       console.error('Image generation failed', err);
-      alert('Failed to generate image: ' + (err.message || 'Unknown error'));
+      alert('Error: ' + JSON.stringify(err));
     } finally {
       setIsGenerating(false);
     }
