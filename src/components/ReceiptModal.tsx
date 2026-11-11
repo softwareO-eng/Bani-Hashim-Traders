@@ -163,6 +163,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     }
 
     document.body.appendChild(container);
+    // Wait for the browser to render the elements
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     try {
       const canvas = await html2canvas(container, {
         scale: 1,
@@ -173,7 +176,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       return canvas;
     } catch (err: any) {
       console.error('Canvas generation error:', err);
-      throw new Error(err.toString());
+      throw new Error(err?.message || err?.toString() || 'Unknown error');
     } finally {
       document.body.removeChild(container);
     }
