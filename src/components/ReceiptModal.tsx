@@ -163,8 +163,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     }
 
     document.body.appendChild(container);
-    // Wait for the browser to render the elements
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Increased wait time for rendering
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
       const canvas = await html2canvas(container, {
