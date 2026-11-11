@@ -15,21 +15,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-    <!-- Smart GitHub Pages Router: Auto-redirects uncompiled root to /docs/ if deployed via branch -->
-    <script>
-      (function() {
-        var isGitHubPages = window.location.hostname.indexOf('github.io') !== -1;
-        if (isGitHubPages) {
-          // If this is the unbundled root template and NOT already inside /docs
-          var pathname = window.location.pathname;
-          var hasBundledScript = !!document.querySelector('script[src*="assets/"]');
-          if (!hasBundledScript && !pathname.includes('/docs')) {
-            var target = pathname.endsWith('/') ? pathname + 'docs/' : pathname + '/docs/';
-            window.location.replace(target + window.location.search + window.location.hash);
-          }
-        }
-      })();
-    </script>
   </head>
   <body class="bg-slate-900 text-slate-100 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root">
