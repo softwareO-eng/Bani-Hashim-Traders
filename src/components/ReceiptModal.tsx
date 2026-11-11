@@ -42,7 +42,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     container.style.background = '#ffffff';
     container.style.color = '#000000';
     container.style.fontFamily = 'Arial, sans-serif';
-    container.style.padding = '32px';
+    container.style.padding = '40px'; // Increased padding
     container.style.boxSizing = 'border-box';
     container.style.fontSize = printFormat === 'full' ? '14px' : '12px';
 
@@ -215,7 +215,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: printFormat === 'a5' ? 'a5' : [canvas.width / 10, canvas.height / 10]
+        format: printFormat === 'a5' ? 'a5' : printFormat === '58mm' ? [58, 100] : printFormat === '80mm' ? [80, 150] : [210, 297]
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -266,8 +266,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     }
 
     // Fallback: Trigger image download and open WhatsApp Web with bill summary
-    handleDownloadImage();
-
+    if (!navigator.share) {
+        handleDownloadImage();
+    }
+    
     const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
     const itemsList = invoice.items
       .map(it => `• ${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || 'Item'}) x${it.qty} = ${formatPKR(it.total)}`)
