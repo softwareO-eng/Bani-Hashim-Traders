@@ -4,8 +4,9 @@ import { storage } from '../services/storage';
 import { Customer, Invoice, Payment, PaymentMethod } from '../types';
 import { 
   Users, Search, UserPlus, Phone, CreditCard, 
-  MessageCircle, History, X, Check, ArrowDownLeft, Trash2
+  MessageCircle, History, X, Check, ArrowDownLeft, Trash2, FolderOpen
 } from 'lucide-react';
+import { CustomerFolderModal } from '../components/CustomerFolderModal';
 
 export const CustomersScreen: React.FC = () => {
   const { t, isRTL, formatPKR } = useLanguage();
@@ -19,8 +20,8 @@ export const CustomersScreen: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentNote, setPaymentNote] = useState('');
 
-  // Customer Ledger Modal
-  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  // Customer Folder / Dossier Modal
+  const [folderCustomerId, setFolderCustomerId] = useState<string | null>(null);
 
   // Fast Add Customer Modal (ONLY NAME REQUIRED)
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);

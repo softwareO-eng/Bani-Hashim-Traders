@@ -738,6 +738,374 @@ class StorageService {
     return inv;
   }
 
+  // --- Payments & Ledger History ---
+  public getPayments(customerId?: string): Payment[] {
+    const list = customerId 
+      ? this.db.payments.filter(p => p.customer_id === customerId)
+      : this.db.payments;
+    return [...list].reverse();
+  }
+
+  public deletePayment(paymentId: string) {
+    const payment = this.db.payments.find(p => p.id === paymentId);
+    if (payment && payment.customer_id) {
+      const cust = this.db.customers.find(c => c.id === payment.customer_id);
+      if (cust) {
+        cust.balance += payment.amount;
+        this.syncToFirestore('customers', cust.id, cust);
+      }
+    }
+    this.db.payments = this.db.payments.filter(p => p.id !== paymentId);
+    this.deleteFromFirestore('payments', paymentId);
+    this.persist();
+  }
+
+  // --- Expenses Management ---
+  public getExpenses(): Expense[] {
+    if (!this.db.expenses) this.db.expenses = [];
+    return [...this.db.expenses].reverse();
+  }
+
+  public addExpense(params: {
+    category: Expense['category'];
+    amount: number;
+    method: PaymentMethod;
+    note?: string;
+    date?: string;
+  }): Expense {
+    if (!this.db.expenses) this.db.expenses = [];
+    const expense: Expense = {
+      id: `exp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      category: params.category,
+      amount: params.amount,
+      method: params.method,
+      note: params.note || '',
+      date: params.date || new Date().toISOString(),
+      user_id: this.currentUser.id
+    };
+    this.db.expenses.push(expense);
+    this.syncToFirestore('expenses', expense.id, expense);
+    this.persist();
+    return expense;
+  }
+
+  public deleteExpense(expenseId: string) {
+    if (!this.db.expenses) this.db.expenses = [];
+    this.db.expenses = this.db.expenses.filter(e => e.id !== expenseId);
+    this.deleteFromFirestore('expenses', expenseId);
+    this.persist();
+  }
+
+  // --- Customer Folder & Complete Khata Dossier ---
+  public getCustomerFolder(customerId: string) {
+    const customer = this.db.customers.find(c => c.id === customerId);
+    if (!customer) return null;
+
+    const invoices = this.db.invoices.filter(i => i.customer_id === customerId);
+    const payments = this.db.payments.filter(p => p.customer_id === customerId);
+
+    // Build unified chronological ledger (running balance stream)
+    type LedgerEntry = {
+      id: string;
+      date: string;
+      type: 'invoice' | 'payment';
+      ref: string;
+      title: string;
+      debit: number;   // New charge / Bill amount
+      credit: number;  // Payment received
+      balance: number; // Running balance after this transaction
+      note?: string;
+      method?: string;
+      itemCount?: number;
+    };
+
+    const combined: Array<{ date: string; type: 'invoice' | 'payment'; data: Invoice | Payment }> = [
+      ...invoices.map(i => ({ date: i.date, type: 'invoice' as const, data: i })),
+      ...payments.map(p => ({ date: p.date, type: 'payment' as const, data: p }))
+    ];
+
+    // Sort ascending for chronological running balance calculation
+    combined.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let running = 0;
+    const ledger: LedgerEntry[] = [];
+
+    combined.forEach(entry => {
+      if (entry.type === 'invoice') {
+        const inv = entry.data as Invoice;
+        if (inv.status !== 'cancelled') {
+          // Debit is total bill, Credit is amount paid immediately
+          running += inv.balance;
+          ledger.push({
+            id: inv.id,
+            date: inv.date,
+            type: 'invoice',
+            ref: inv.number,
+            title: `Sale Bill (${inv.items.length} items)`,
+            debit: inv.total,
+            credit: inv.paid,
+            balance: running,
+            note: inv.note,
+            method: inv.payment_method,
+            itemCount: inv.items.reduce((s, it) => s + it.qty, 0)
+          });
+        }
+      } else {
+        const pay = entry.data as Payment;
+        running = Math.max(0, running - pay.amount);
+        ledger.push({
+          id: pay.id,
+          date: pay.date,
+          type: 'payment',
+          ref: `REC-${pay.id.slice(-6)}`,
+          title: `Udhaar Recovery (${pay.method.toUpperCase()})`,
+          debit: 0,
+          credit: pay.amount,
+          balance: running,
+          note: pay.note,
+          method: pay.method
+        });
+      }
+    });
+
+    // Aggregated items bought by this customer
+    const itemsMap = new Map<string, { name: string; qty: number; spent: number; lastDate: string }>();
+    invoices.forEach(inv => {
+      if (inv.status === 'cancelled') return;
+      inv.items.forEach(it => {
+        const key = it.variant_id || it.product_name_en;
+        const existing = itemsMap.get(key) || { 
+          name: it.product_name_en + (it.variant_title ? ` (${it.variant_title})` : ''), 
+          qty: 0, 
+          spent: 0, 
+          lastDate: inv.date 
+        };
+        existing.qty += it.qty;
+        existing.spent += it.total;
+        if (new Date(inv.date) > new Date(existing.lastDate)) {
+          existing.lastDate = inv.date;
+        }
+        itemsMap.set(key, existing);
+      });
+    });
+
+    const totalPurchased = invoices.filter(i => i.status !== 'cancelled').reduce((s, i) => s + i.total, 0);
+    const totalPaid = invoices.filter(i => i.status !== 'cancelled').reduce((s, i) => s + i.paid, 0) + 
+                      payments.reduce((s, p) => s + p.amount, 0);
+
+    return {
+      customer,
+      invoices: [...invoices].reverse(),
+      payments: [...payments].reverse(),
+      ledger: [...ledger].reverse(), // latest first for presentation
+      purchasedItems: Array.from(itemsMap.values()).sort((a, b) => b.qty - a.qty),
+      totalPurchased,
+      totalPaid,
+      currentBalance: customer.balance
+    };
+  }
+
+  // --- Complete Profit & Loss Financial Engine ---
+  public getProfitLoss(timeframe: 'today' | 'week' | 'month' | 'year' | 'all') {
+    const now = new Date();
+    let startDate: Date;
+
+    if (timeframe === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (timeframe === 'week') {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'month') {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 30);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      startDate = new Date(2000, 0, 1);
+    }
+
+    // Filter completed invoices in timeframe
+    const periodInvoices = this.db.invoices.filter(i => {
+      if (i.status === 'cancelled') return false;
+      const d = new Date(i.date);
+      return d >= startDate;
+    });
+
+    // 1. Calculate Revenue, Cost of Goods Sold (COGS), and Gross Profit on EVERY sold item
+    let totalSales = 0;
+    let totalCogs = 0;
+    let totalItemDiscounts = 0;
+    let totalInvoiceDiscounts = 0;
+    let totalCashCollected = 0;
+    let totalUdhaarGiven = 0;
+
+    const productProfitMap = new Map<string, {
+      id: string;
+      name_en: string;
+      name_ur?: string;
+      sku: string;
+      qty: number;
+      revenue: number;
+      cost: number;
+      profit: number;
+      margin: number;
+    }>();
+
+    periodInvoices.forEach(inv => {
+      totalSales += inv.total;
+      totalInvoiceDiscounts += (inv.discount || 0);
+      totalCashCollected += (inv.paid || 0);
+      totalUdhaarGiven += (inv.balance || 0);
+
+      inv.items.forEach(it => {
+        const itemRevenue = it.total;
+        const itemCost = it.qty * (it.cost_at_sale || 0);
+        const itemProfit = itemRevenue - itemCost;
+        
+        totalCogs += itemCost;
+        totalItemDiscounts += (it.discount || 0);
+
+        const key = it.variant_id || it.sku || it.product_name_en;
+        const existing = productProfitMap.get(key) || {
+          id: key,
+          name_en: it.product_name_en + (it.variant_title ? ` - ${it.variant_title}` : ''),
+          name_ur: it.product_name_ur,
+          sku: it.sku || 'N/A',
+          qty: 0,
+          revenue: 0,
+          cost: 0,
+          profit: 0,
+          margin: 0
+        };
+
+        existing.qty += it.qty;
+        existing.revenue += itemRevenue;
+        existing.cost += itemCost;
+        existing.profit += itemProfit;
+        existing.margin = existing.revenue > 0 ? (existing.profit / existing.revenue) * 100 : 0;
+        productProfitMap.set(key, existing);
+      });
+    });
+
+    // Gross profit is Sales minus direct cost of goods sold
+    const grossProfit = totalSales - totalCogs;
+    const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+
+    // 2. Total Purchases (Stock inventory received from suppliers in period)
+    const periodStockMoves = this.db.stockMoves.filter(m => {
+      const d = new Date(m.created_at);
+      return d >= startDate && m.type === 'purchase_received';
+    });
+
+    let totalPurchases = 0;
+    periodStockMoves.forEach(m => {
+      const variant = this.db.variants.find(v => v.id === m.variant_id);
+      totalPurchases += m.qty * (variant?.cost || 0);
+    });
+
+    // 3. Operating Expenses in period
+    if (!this.db.expenses) this.db.expenses = [];
+    const periodExpenses = this.db.expenses.filter(e => {
+      const d = new Date(e.date);
+      return d >= startDate;
+    });
+
+    const totalExpenses = periodExpenses.reduce((s, e) => s + e.amount, 0);
+
+    // 4. Net Profit = Gross Profit - Operating Expenses
+    const netProfit = grossProfit - totalExpenses;
+    const netMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+
+    // 5. Add Udhaar recoveries collected in this period
+    const periodPayments = this.db.payments.filter(p => {
+      const d = new Date(p.date);
+      return d >= startDate;
+    });
+    const udhaarRecovered = periodPayments.reduce((s, p) => s + p.amount, 0);
+    const totalCashFlow = totalCashCollected + udhaarRecovered;
+
+    // 6. Time Breakdown
+    // Build daily rows for week/month, or monthly rows for year
+    const breakdownMap = new Map<string, {
+      label: string;
+      dateKey: string;
+      invoicesCount: number;
+      sales: number;
+      cogs: number;
+      grossProfit: number;
+      expenses: number;
+      netProfit: number;
+      margin: number;
+    }>();
+
+    periodInvoices.forEach(inv => {
+      const dateKey = inv.date.slice(0, 10);
+      const cur = breakdownMap.get(dateKey) || {
+        label: dateKey,
+        dateKey,
+        invoicesCount: 0,
+        sales: 0,
+        cogs: 0,
+        grossProfit: 0,
+        expenses: 0,
+        netProfit: 0,
+        margin: 0
+      };
+
+      cur.invoicesCount += 1;
+      cur.sales += inv.total;
+      const invCogs = inv.items.reduce((s, it) => s + (it.qty * (it.cost_at_sale || 0)), 0);
+      cur.cogs += invCogs;
+      cur.grossProfit = cur.sales - cur.cogs;
+      breakdownMap.set(dateKey, cur);
+    });
+
+    periodExpenses.forEach(exp => {
+      const dateKey = exp.date.slice(0, 10);
+      const cur = breakdownMap.get(dateKey) || {
+        label: dateKey,
+        dateKey,
+        invoicesCount: 0,
+        sales: 0,
+        cogs: 0,
+        grossProfit: 0,
+        expenses: 0,
+        netProfit: 0,
+        margin: 0
+      };
+      cur.expenses += exp.amount;
+      breakdownMap.set(dateKey, cur);
+    });
+
+    const breakdownRows = Array.from(breakdownMap.values()).map(r => {
+      r.netProfit = r.grossProfit - r.expenses;
+      r.margin = r.sales > 0 ? (r.netProfit / r.sales) * 100 : 0;
+      return r;
+    }).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+    return {
+      timeframe,
+      invoiceCount: periodInvoices.length,
+      totalSales,
+      totalPurchases,
+      totalCogs,
+      grossProfit,
+      grossMargin,
+      totalExpenses,
+      netProfit,
+      netMargin,
+      totalCashCollected,
+      udhaarRecovered,
+      totalCashFlow,
+      totalUdhaarGiven,
+      productProfits: Array.from(productProfitMap.values()).sort((a, b) => b.profit - a.profit),
+      breakdownRows,
+      expensesList: [...periodExpenses].reverse()
+    };
+  }
+
   // --- Settings & Clear All ---
   public getSettings(): ShopSettings {
     return this.db.settings;
