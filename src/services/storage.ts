@@ -11,6 +11,43 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const STORAGE_KEY = 'pakmobile_pos_db_clean_v2';
 const CURRENT_USER_KEY = 'pakmobile_active_user_v2';
 
+const memoryFallback: Record<string, string> = {};
+
+export function safeStorageGet(key: string): string | null {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(key);
+    }
+  } catch (e) {
+    console.warn('localStorage read notice (using safe memory store):', e);
+  }
+  return memoryFallback[key] ?? null;
+}
+
+export function safeStorageSet(key: string, value: string): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, value);
+      return;
+    }
+  } catch (e) {
+    console.warn('localStorage write notice (using safe memory store):', e);
+  }
+  memoryFallback[key] = value;
+}
+
+export function safeStorageRemove(key: string): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(key);
+      return;
+    }
+  } catch (e) {
+    console.warn('localStorage remove notice:', e);
+  }
+  delete memoryFallback[key];
+}
+
 export const INITIAL_USERS: User[] = [
   {
     id: 'user-1',
@@ -84,7 +121,7 @@ class StorageService {
   private currentUser: User;
 
   constructor() {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = safeStorageGet(STORAGE_KEY);
     if (saved) {
       try {
         this.db = JSON.parse(saved);
@@ -104,7 +141,7 @@ class StorageService {
       this.persist();
     }
 
-    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+    const savedUser = safeStorageGet(CURRENT_USER_KEY);
     if (savedUser) {
       try {
         this.currentUser = JSON.parse(savedUser);
@@ -113,7 +150,7 @@ class StorageService {
       }
     } else {
       this.currentUser = INITIAL_USERS[0];
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(this.currentUser));
+      safeStorageSet(CURRENT_USER_KEY, JSON.stringify(this.currentUser));
     }
 
     // Attempt initial sync with Firestore
@@ -139,9 +176,9 @@ class StorageService {
 
   private persist() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.db));
+      safeStorageSet(STORAGE_KEY, JSON.stringify(this.db));
     } catch (e) {
-      console.error('Local storage write error', e);
+      console.error('Storage persist note', e);
     }
   }
 
@@ -220,7 +257,7 @@ class StorageService {
 
   public setCurrentUser(user: User) {
     this.currentUser = user;
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    safeStorageSet(CURRENT_USER_KEY, JSON.stringify(user));
   }
 
   public loginWithPhonePin(phone: string, pin: string): User | null {

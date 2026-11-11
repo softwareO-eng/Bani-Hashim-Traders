@@ -17,14 +17,22 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('pakmobile_lang');
-    return (saved === 'ur' || saved === 'en') ? saved : 'en';
+    try {
+      const saved = localStorage.getItem('pakmobile_lang');
+      return (saved === 'ur' || saved === 'en') ? saved : 'en';
+    } catch {
+      return 'en';
+    }
   });
 
   const isRTL = language === 'ur';
 
   useEffect(() => {
-    localStorage.setItem('pakmobile_lang', language);
+    try {
+      localStorage.setItem('pakmobile_lang', language);
+    } catch {
+      // Ignore private browsing restrictions
+    }
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
   }, [language, isRTL]);
