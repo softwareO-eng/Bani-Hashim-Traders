@@ -3,9 +3,10 @@ import { useLanguage } from '../context/LanguageContext';
 import { storage } from '../services/storage';
 import { Invoice } from '../types';
 import { 
-  Receipt, Search, Printer, Trash2, Ban, AlertCircle
+  Receipt, Search, Printer, Trash2, Ban, AlertCircle, Edit
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
+import { EditInvoiceModal } from '../components/EditInvoiceModal';
 
 export const InvoicesScreen: React.FC = () => {
   const { t, isRTL, formatPKR } = useLanguage();
@@ -14,6 +15,7 @@ export const InvoicesScreen: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'udhaar' | 'today' | 'cancelled'>('all');
   
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [cancellingInvoice, setCancellingInvoice] = useState<Invoice | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -209,7 +211,7 @@ export const InvoicesScreen: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Print and Cancel actions */}
+                      {/* Print, Edit and Cancel actions */}
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -218,6 +220,14 @@ export const InvoicesScreen: React.FC = () => {
                             title="View & Print Receipt"
                           >
                             <Printer className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => setEditingInvoice(inv)}
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors"
+                            title="Edit Invoice Details"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
 
                           {!isCancelled && (
@@ -259,6 +269,15 @@ export const InvoicesScreen: React.FC = () => {
         <ReceiptModal
           invoice={selectedInvoice}
           onClose={() => setSelectedInvoice(null)}
+        />
+      )}
+
+      {/* Edit Invoice Modal */}
+      {editingInvoice && (
+        <EditInvoiceModal
+          invoice={editingInvoice}
+          onClose={() => setEditingInvoice(null)}
+          onUpdated={loadInvoices}
         />
       )}
 

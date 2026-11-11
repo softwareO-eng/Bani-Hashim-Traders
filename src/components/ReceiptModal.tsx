@@ -15,8 +15,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
   const { language: currentAppLang, formatPKR } = useLanguage();
   const settings = storage.getSettings();
   
-  // Format options: 58mm, 80mm, A5
-  const [printFormat, setPrintFormat] = useState<'58mm' | '80mm' | 'a5'>(settings.printer_type || '80mm');
+  // Format options: full, 80mm, 58mm, a5
+  const [printFormat, setPrintFormat] = useState<'full' | '80mm' | '58mm' | 'a5'>('full');
   // Language for the receipt: can be English or Urdu regardless of app language
   const [receiptLang, setReceiptLang] = useState<'en' | 'ur'>(currentAppLang);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,64 +32,138 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
   // Helper: Generate clean canvas without Tailwind oklch color errors
   const generateCanvas = async () => {
     const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.top = '-9999px';
-    container.style.left = '-9999px';
-    container.style.width = printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.zIndex = '-9999';
+    container.style.opacity = '1';
+    container.style.pointerEvents = 'none';
+    container.style.width = printFormat === 'full' ? '650px' : printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
     container.style.background = '#ffffff';
     container.style.color = '#000000';
     container.style.fontFamily = 'Arial, sans-serif';
-    container.style.padding = '16px';
+    container.style.padding = '24px';
     container.style.boxSizing = 'border-box';
-    container.style.fontSize = '12px';
+    container.style.fontSize = printFormat === 'full' ? '14px' : '12px';
 
     const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
     const shopAddress = isUrdu ? settings.shop_address_ur : settings.shop_address_en;
     const footerText = isUrdu ? settings.receipt_footer_ur : settings.receipt_footer_en;
 
-    container.innerHTML = `
-      <div style="text-align: center; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-        <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 4px 0;">${shopName}</h2>
-        <p style="font-size: 11px; color: #555; margin: 0 0 2px 0;">${shopAddress}</p>
-        <p style="font-size: 11px; color: #555; margin: 0;">Phone: ${settings.shop_phone}</p>
-        ${invoice.status === 'cancelled' ? '<div style="margin-top:4px; color:red; font-weight:bold;">*** CANCELLED INVOICE ***</div>' : ''}
-      </div>
-      <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-        <div style="display: flex; justify-content: space-between;"><span>Invoice No:</span> <b>${invoice.number}</b></div>
-        <div style="display: flex; justify-content: space-between;"><span>Date:</span> <span>${new Date(invoice.date).toLocaleString()}</span></div>
-        <div style="display: flex; justify-content: space-between;"><span>Customer:</span> <span>${invoice.customer_name || 'Walk-in'}</span></div>
-      </div>
-      <div style="border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-        <div style="display: flex; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;">
-          <span style="flex: 1;">Item</span>
-          <span style="width: 30px; text-align: center;">Qty</span>
-          <span style="width: 60px; text-align: right;">Total</span>
-        </div>
-        ${invoice.items.map(it => `
-          <div style="display: flex; margin-bottom: 4px;">
-            <span style="flex: 1;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || ''})</span>
-            <span style="width: 30px; text-align: center;">${it.qty}</span>
-            <span style="width: 60px; text-align: right;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</span>
+    if (printFormat === 'full') {
+      container.innerHTML = `
+        <div style="border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h1 style="font-size: 22px; font-weight: bold; color: #065f46; margin: 0 0 4px 0;">${shopName}</h1>
+            <p style="font-size: 12px; color: #4b5563; margin: 0 0 2px 0;">${shopAddress}</p>
+            <p style="font-size: 12px; color: #4b5563; margin: 0;">Phone: ${settings.shop_phone}</p>
           </div>
-        `).join('')}
-      </div>
-      <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
-        <div style="display: flex; justify-content: space-between;"><span>Subtotal:</span> <span>${formatPKR(invoice.subtotal)}</span></div>
-        ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; color: #047857;"><span>Discount:</span> <span>-${formatPKR(invoice.discount)}</span></div>` : ''}
-        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 4px;"><span>Grand Total:</span> <span>${formatPKR(invoice.total)}</span></div>
-        <div style="display: flex; justify-content: space-between; margin-top: 4px;"><span>Paid (${invoice.payment_method}):</span> <span>${formatPKR(invoice.paid)}</span></div>
-        ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; margin-top: 4px;"><span>Udhaar Balance:</span> <span>${formatPKR(invoice.balance)}</span></div>` : ''}
-      </div>
-      <div style="text-align: center; font-size: 10px; color: #666;">
-        <p style="margin: 0 0 4px 0;">${footerText}</p>
-        <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
-      </div>
-    `;
+          <div style="text-align: right;">
+            <div style="font-size: 18px; font-weight: bold; color: #1f2937;">INVOICE</div>
+            <div style="font-size: 13px; font-family: monospace; font-weight: bold; color: #059669; margin-top: 2px;">${invoice.number}</div>
+            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Date: ${new Date(invoice.date).toLocaleString()}</div>
+          </div>
+        </div>
+
+        ${invoice.status === 'cancelled' ? '<div style="background: #fee2e2; border: 1px solid #f87171; color: #b91c1c; padding: 8px; font-weight: bold; text-align: center; margin-bottom: 12px; border-radius: 6px;">*** CANCELLED INVOICE ***</div>' : ''}
+
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Billed To:</div>
+            <div style="font-size: 14px; font-weight: bold; color: #111827; margin-top: 2px;">${invoice.customer_name || 'Walk-in Customer'}</div>
+            <div style="font-size: 12px; color: #4b5563; font-family: monospace; margin-top: 1px;">${invoice.customer_phone || 'No phone'}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Served By:</div>
+            <div style="font-size: 13px; font-weight: bold; color: #111827; margin-top: 2px;">${invoice.user_name}</div>
+            <div style="font-size: 12px; color: #4b5563; text-transform: uppercase; margin-top: 1px;">${invoice.payment_method}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px;">
+          <thead>
+            <tr style="background: #065f46; color: #ffffff;">
+              <th style="padding: 8px 10px; text-align: left;">Item Description & Model</th>
+              <th style="padding: 8px 10px; text-align: center;">Qty</th>
+              <th style="padding: 8px 10px; text-align: right;">Price</th>
+              <th style="padding: 8px 10px; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.items.map((it, idx) => `
+              <tr style="border-bottom: 1px solid #e5e7eb; background: ${idx % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                <td style="padding: 8px 10px;">
+                  <div style="font-weight: bold; color: #111827;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en}</div>
+                  <div style="font-size: 10px; color: #6b7280;">${it.variant_title || ''}</div>
+                </td>
+                <td style="padding: 8px 10px; text-align: center; font-family: monospace;">${it.qty}</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: monospace;">${formatPKR(it.unit_price).replace(/^(Rs|روپے)\s*/, '')}</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: bold;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+          <div style="width: 260px; background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; font-size: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Subtotal:</span> <span style="font-family: monospace; font-weight: bold;">${formatPKR(invoice.subtotal)}</span></div>
+            ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #047857;"><span>Discount:</span> <span style="font-family: monospace;">-${formatPKR(invoice.discount)}</span></div>` : ''}
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px solid #d1d5db; padding-top: 6px; margin-bottom: 6px;"><span>Grand Total:</span> <span style="font-family: monospace; color: #065f46;">${formatPKR(invoice.total)}</span></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Paid Amount:</span> <span style="font-family: monospace; font-weight: bold;">${formatPKR(invoice.paid)}</span></div>
+            ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; border-top: 1px dashed #d1d5db; padding-top: 4px; margin-top: 4px;"><span>Udhaar Balance:</span> <span style="font-family: monospace;">${formatPKR(invoice.balance)}</span></div>` : '<div style="color: #059669; font-weight: bold; text-align: center; margin-top: 4px;">✓ FULLY PAID</div>'}
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed #d1d5db; padding-top: 12px; text-align: center; font-size: 11px; color: #6b7280;">
+          <p style="margin: 0 0 4px 0;">${footerText}</p>
+          <p style="margin: 0; font-weight: bold; color: #1f2937;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div style="text-align: center; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+          <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 4px 0;">${shopName}</h2>
+          <p style="font-size: 11px; color: #555; margin: 0 0 2px 0;">${shopAddress}</p>
+          <p style="font-size: 11px; color: #555; margin: 0;">Phone: ${settings.shop_phone}</p>
+          ${invoice.status === 'cancelled' ? '<div style="margin-top:4px; color:red; font-weight:bold;">*** CANCELLED INVOICE ***</div>' : ''}
+        </div>
+        <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between;"><span>Invoice No:</span> <b>${invoice.number}</b></div>
+          <div style="display: flex; justify-content: space-between;"><span>Date:</span> <span>${new Date(invoice.date).toLocaleString()}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>Customer:</span> <span>${invoice.customer_name || 'Walk-in'}</span></div>
+        </div>
+        <div style="border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="display: flex; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;">
+            <span style="flex: 1;">Item</span>
+            <span style="width: 30px; text-align: center;">Qty</span>
+            <span style="width: 60px; text-align: right;">Total</span>
+          </div>
+          ${invoice.items.map(it => `
+            <div style="display: flex; margin-bottom: 4px;">
+              <span style="flex: 1;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || ''})</span>
+              <span style="width: 30px; text-align: center;">${it.qty}</span>
+              <span style="width: 60px; text-align: right;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between;"><span>Subtotal:</span> <span>${formatPKR(invoice.subtotal)}</span></div>
+          ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; color: #047857;"><span>Discount:</span> <span>-${formatPKR(invoice.discount)}</span></div>` : ''}
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 4px;"><span>Grand Total:</span> <span>${formatPKR(invoice.total)}</span></div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;"><span>Paid (${invoice.payment_method}):</span> <span>${formatPKR(invoice.paid)}</span></div>
+          ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; margin-top: 4px;"><span>Udhaar Balance:</span> <span>${formatPKR(invoice.balance)}</span></div>` : ''}
+        </div>
+        <div style="text-align: center; font-size: 10px; color: #666;">
+          <p style="margin: 0 0 4px 0;">${footerText}</p>
+          <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+        </div>
+      `;
+    }
 
     document.body.appendChild(container);
     try {
       const canvas = await html2canvas(container, {
-        scale: 3,
+        scale: 2.5,
         useCORS: true,
         backgroundColor: '#ffffff'
       });

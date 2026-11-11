@@ -727,6 +727,24 @@ class StorageService {
     this.persist();
   }
 
+  public updateInvoice(invoiceId: string, updates: Partial<Invoice>): Invoice {
+    const inv = this.getInvoiceById(invoiceId);
+    if (!inv) throw new Error('Invoice not found');
+
+    Object.assign(inv, updates);
+    
+    if (updates.items || updates.discount !== undefined || updates.paid !== undefined) {
+      inv.subtotal = inv.items.reduce((sum, item) => sum + (item.qty * item.unit_price) - (item.discount || 0), 0);
+      inv.total = Math.max(0, inv.subtotal - (inv.discount || 0) + (inv.tax || 0));
+      inv.paid = Math.min(inv.total, Math.max(0, inv.paid));
+      inv.balance = inv.total - inv.paid;
+    }
+
+    this.syncToFirestore('invoices', inv.id, inv);
+    this.persist();
+    return inv;
+  }
+
   public cancelInvoice(invoiceId: string, reason: string): Invoice {
     const inv = this.getInvoiceById(invoiceId);
     if (!inv) throw new Error('Invoice not found');
