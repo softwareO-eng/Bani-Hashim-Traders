@@ -4,7 +4,7 @@ import {
 } from '../types';
 import { db } from './firebase';
 import { 
-  collection, doc, setDoc, deleteDoc, getDocs 
+  collection, doc, setDoc, deleteDoc, getDocs, onSnapshot 
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -204,50 +204,79 @@ class StorageService {
   public async syncFromFirebase() {
     try {
       if (!db) return;
-      // Sync products
+      
+      // Sync products - replace local array with exact snapshot from Firestore
       const pSnap = await getDocs(collection(db, 'products'));
-      if (!pSnap.empty) {
-        const firestoreProducts: Product[] = [];
-        pSnap.forEach(d => firestoreProducts.push(d.data() as Product));
-        if (firestoreProducts.length > 0) {
-          this.db.products = firestoreProducts;
-        }
-      }
+      const firestoreProducts: Product[] = [];
+      pSnap.forEach(d => firestoreProducts.push(d.data() as Product));
+      this.db.products = firestoreProducts;
 
       // Sync variants
       const vSnap = await getDocs(collection(db, 'variants'));
-      if (!vSnap.empty) {
-        const firestoreVariants: ProductVariant[] = [];
-        vSnap.forEach(d => firestoreVariants.push(d.data() as ProductVariant));
-        if (firestoreVariants.length > 0) {
-          this.db.variants = firestoreVariants;
-        }
-      }
+      const firestoreVariants: ProductVariant[] = [];
+      vSnap.forEach(d => firestoreVariants.push(d.data() as ProductVariant));
+      this.db.variants = firestoreVariants;
 
       // Sync customers
       const cSnap = await getDocs(collection(db, 'customers'));
-      if (!cSnap.empty) {
-        const firestoreCustomers: Customer[] = [];
-        cSnap.forEach(d => firestoreCustomers.push(d.data() as Customer));
-        if (firestoreCustomers.length > 0) {
-          this.db.customers = firestoreCustomers;
-        }
-      }
+      const firestoreCustomers: Customer[] = [];
+      cSnap.forEach(d => firestoreCustomers.push(d.data() as Customer));
+      this.db.customers = firestoreCustomers;
 
       // Sync invoices
       const iSnap = await getDocs(collection(db, 'invoices'));
-      if (!iSnap.empty) {
-        const firestoreInvoices: Invoice[] = [];
-        iSnap.forEach(d => firestoreInvoices.push(d.data() as Invoice));
-        if (firestoreInvoices.length > 0) {
-          this.db.invoices = firestoreInvoices;
-        }
-      }
+      const firestoreInvoices: Invoice[] = [];
+      iSnap.forEach(d => firestoreInvoices.push(d.data() as Invoice));
+      this.db.invoices = firestoreInvoices;
+
+      // Sync payments
+      const paySnap = await getDocs(collection(db, 'payments'));
+      const firestorePayments: Payment[] = [];
+      paySnap.forEach(d => firestorePayments.push(d.data() as Payment));
+      this.db.payments = firestorePayments;
+
+      // Sync expenses
+      const expSnap = await getDocs(collection(db, 'expenses'));
+      const firestoreExpenses: Expense[] = [];
+      expSnap.forEach(d => firestoreExpenses.push(d.data() as Expense));
+      this.db.expenses = firestoreExpenses;
 
       this.persist();
     } catch (e) {
-      console.warn('Firebase pull note (using offline local database):', e);
+      console.warn('Firebase initial pull note (using offline local database):', e);
     }
+  }
+
+  // Real-time bidirectional listener setup for instantly syncing all connected devices
+  public subscribeRealtime(onDataUpdate: () => void) {
+    const activeDb = db;
+    if (!activeDb) return () => {};
+
+    const collectionsToListen = [
+      { name: 'products', key: 'products' as const },
+      { name: 'variants', key: 'variants' as const },
+      { name: 'customers', key: 'customers' as const },
+      { name: 'invoices', key: 'invoices' as const },
+      { name: 'payments', key: 'payments' as const },
+      { name: 'expenses', key: 'expenses' as const },
+      { name: 'stockMoves', key: 'stockMoves' as const }
+    ];
+
+    const unsubscribes = collectionsToListen.map(({ name, key }) => {
+      return onSnapshot(collection(activeDb, name), (snapshot) => {
+        const items: any[] = [];
+        snapshot.forEach(d => items.push(d.data()));
+        (this.db as any)[key] = items;
+        this.persist();
+        onDataUpdate();
+      }, (err) => {
+        console.warn(`Realtime listener note for ${name}:`, err);
+      });
+    });
+
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
   }
 
   // --- Auth & Users ---

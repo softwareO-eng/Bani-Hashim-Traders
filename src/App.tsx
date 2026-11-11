@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { storage } from './services/storage';
 import { User } from './types';
@@ -31,6 +31,15 @@ const MainApp: React.FC = () => {
   const { t, isRTL } = useLanguage();
   const [currentUser, setCurrentUser] = useState<User | null>(() => storage.getCurrentUser());
   const [activeScreen, setActiveScreen] = useState<ScreenId>('pos');
+  const [, setRealtimeTick] = useState(0);
+
+  // Real-time Firestore sync listener across all connected devices
+  useEffect(() => {
+    const unsub = storage.subscribeRealtime(() => {
+      setRealtimeTick(prev => prev + 1);
+    });
+    return () => unsub();
+  }, []);
 
   if (!currentUser) {
     return <LoginScreen onLoginSuccess={user => setCurrentUser(user)} />;

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Bani Hashim Traders - بنی ہاشم ٹریڈرز</title>
+    <meta name="description" content="Bani Hashim Traders - Mobile Accessories Shop Management System with English & Urdu support, Udhaar tracking, POS, barcode scanning, and thermal printing." />
+    <meta property="og:title" content="Bani Hashim Traders - بنی ہاشم ٹریڈرز" />
+    <meta property="og:description" content="Bani Hashim Traders - Mobile Accessories Shop Management System with English & Urdu support, Udhaar tracking, POS, barcode scanning, and thermal printing." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- Google Fonts for Urdu & English -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Smart Static Hosting Bootloader: Ensures the app starts immediately on GitHub Pages -->
+    <script>
+      (function() {
+        var hasBooted = false;
+        function loadFallbackBundle() {
+          if (hasBooted || window.__APP_BOOTED__) return;
+          var root = document.getElementById('root');
+          if (root && root.querySelector('.initial-static-loader')) {
+            hasBooted = true;
+            window.__APP_BOOTED__ = true;
+            console.log('Static host mode: bootstrapping precompiled bundle...');
+            var s = document.createElement('script');
+            s.type = 'module';
+            s.crossOrigin = 'anonymous';
+            s.src = './assets/app.js';
+            document.head.appendChild(s);
+
+            var l = document.createElement('link');
+            l.rel = 'stylesheet';
+            l.crossOrigin = 'anonymous';
+            l.href = './assets/app.css';
+            document.head.appendChild(l);
+          }
+        }
+
+        window.addEventListener('error', function(e) {
+          if (e.filename && e.filename.indexOf('main.tsx') !== -1) {
+            loadFallbackBundle();
+          }
+        }, true);
+
+        // If running directly on GitHub Pages or static host where main.tsx cannot compile
+        if (window.location.hostname.indexOf('github.io') !== -1) {
+          setTimeout(loadFallbackBundle, 100);
+        } else {
+          setTimeout(loadFallbackBundle, 600);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-vqe1JQkv.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cjr5_qi3.css">
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="root">
+      <!-- Branded initial loading screen prevents blank screen while application initializes -->
+      <div class="initial-static-loader" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 24px;">
+        <div style="width: 60px; height: 60px; border-radius: 18px; background: #059669; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 10px 25px -5px rgba(5,150,105,0.5);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+        </div>
+        <h1 style="font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: #ffffff; letter-spacing: -0.02em;">Bani Hashim Traders</h1>
+        <p style="font-size: 15px; color: #94a3b8; margin: 0 0 24px 0; font-family: 'Noto Nastaliq Urdu', serif;">بنی ہاشم ٹریڈرز - موبائل اسیسریز شاپ مینیجر</p>
+        <div style="display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 9999px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); font-size: 13px; color: #34d399; font-weight: 500;">
+          <svg style="animation: spin 1s linear infinite; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+          <span>Loading POS System... / سسٹم شروع ہو رہا ہے</span>
+        </div>
+        <style>@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
+  </body>
+</html>
