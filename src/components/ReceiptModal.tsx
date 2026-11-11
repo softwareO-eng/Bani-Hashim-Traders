@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Invoice } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { storage } from '../services/storage';
-import { Printer, Share2, X, Globe } from 'lucide-react';
+import { Printer, Share2, X, Globe, FileText, Image as ImageIcon, Download, Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface ReceiptModalProps {
   invoice: Invoice | null;
@@ -17,6 +19,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
   const [printFormat, setPrintFormat] = useState<'58mm' | '80mm' | 'a5'>(settings.printer_type || '80mm');
   // Language for the receipt: can be English or Urdu regardless of app language
   const [receiptLang, setReceiptLang] = useState<'en' | 'ur'>(currentAppLang);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   if (!invoice) return null;
 
@@ -26,15 +29,108 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     window.print();
   };
 
-  const handleWhatsAppShare = () => {
+  // 1. Download Invoice as PNG Image
+  const handleDownloadImage = async () => {
+    const receiptEl = document.getElementById('printable-receipt');
+    if (!receiptEl) return;
+
+    try {
+      setIsGenerating(true);
+      const canvas = await html2canvas(receiptEl, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `Invoice_${invoice.number}_Bani_Hashim_Traders.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Image generation failed', err);
+      alert('Failed to generate image');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // 2. Download Invoice as PDF Document
+  const handleDownloadPDF = async () => {
+    const receiptEl = document.getElementById('printable-receipt');
+    if (!receiptEl) return;
+
+    try {
+      setIsGenerating(true);
+      const canvas = await html2canvas(receiptEl, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: printFormat === 'a5' ? 'a5' : [canvas.width / 10, canvas.height / 10]
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed', err);
+      alert('Failed to generate PDF document');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // 3. Share Invoice Image / PDF on WhatsApp
+  const handleWhatsAppShare = async () => {
     const phone = invoice.customer_phone?.replace(/[^0-9]/g, '') || '';
-    // Format Pakistani phone to international 923...
     let cleanPhone = phone;
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '92' + cleanPhone.substring(1);
     } else if (cleanPhone.startsWith('3')) {
       cleanPhone = '92' + cleanPhone;
     }
+
+    const receiptEl = document.getElementById('printable-receipt');
+    if (receiptEl && navigator.share && window.File) {
+      try {
+        setIsGenerating(true);
+        const canvas = await html2canvas(receiptEl, { scale: 2.5, backgroundColor: '#ffffff' });
+        
+        // Convert canvas to blob file
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (blob) {
+          const file = new File([blob], `Invoice_${invoice.number}.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `Invoice ${invoice.number} - Bani Hashim Traders`,
+              text: isUrdu 
+                ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}` 
+                : `Bani Hashim Traders - Invoice #${invoice.number}`,
+              files: [file]
+            });
+            setIsGenerating(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Native web share fallback to WhatsApp Web text format:', e);
+      } finally {
+        setIsGenerating(false);
+      }
+    }
+
+    // Fallback: Also auto-trigger image download and open WhatsApp with prefilled bill summary
+    handleDownloadImage();
 
     const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
     const itemsList = invoice.items
@@ -57,6 +153,8 @@ ${itemsList}
 *وصول شدہ:* ${formatPKR(invoice.paid)}
 *بقایا ادھار:* ${formatPKR(invoice.balance)}
 
+*(نوٹ: انوائس کی تصویری رسید ڈاؤنلوڈ ہو چکی ہے۔ آپ اسے ساتھ منسلک کر سکتے ہیں۔)*
+
 ${settings.receipt_footer_ur}
 رابطہ: ${settings.shop_phone}`;
     } else {
@@ -73,6 +171,8 @@ ${itemsList}
 *Total Amount:* ${formatPKR(invoice.total)}
 *Paid:* ${formatPKR(invoice.paid)}
 *Udhaar Balance:* ${formatPKR(invoice.balance)}
+
+*(Note: Invoice image downloaded automatically. You can attach it to this message.)*
 
 ${settings.receipt_footer_en}
 Phone: ${settings.shop_phone}`;
@@ -281,22 +381,42 @@ Phone: ${settings.shop_phone}`;
           </div>
         </div>
 
-        {/* Action Buttons (Print & WhatsApp) */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+        {/* Action Buttons (WhatsApp, Image export, PDF download & Thermal Print) */}
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             onClick={handleWhatsAppShare}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm active:scale-98"
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
           >
-            <Share2 className="w-4 h-4" />
-            <span>{isUrdu ? 'واٹس ایپ پر انوائس بھیجیں' : 'Send via WhatsApp'}</span>
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+            <span>{isUrdu ? 'واٹس ایپ انوائس' : 'WhatsApp Share'}</span>
+          </button>
+
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+          >
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            <span>{isUrdu ? 'پی ڈی ایف (PDF)' : 'Download PDF'}</span>
+          </button>
+
+          <button
+            onClick={handleDownloadImage}
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+          >
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+            <span>{isUrdu ? 'تصویر (Image)' : 'Save Image'}</span>
           </button>
 
           <button
             onClick={handlePrint}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-sm active:scale-98"
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-2xs active:scale-98"
           >
             <Printer className="w-4 h-4" />
-            <span>{isUrdu ? 'پرنٹ نکالیں' : 'Print Receipt'}</span>
+            <span>{isUrdu ? 'پرنٹ رسید' : 'Print Receipt'}</span>
           </button>
         </div>
 
