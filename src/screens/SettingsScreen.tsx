@@ -179,6 +179,33 @@ export const SettingsScreen: React.FC = () => {
                 <option value="a5">A5 Full Sheet Invoice</option>
               </select>
             </div>
+            
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Custom Invoice Terms (English)
+              </label>
+              <textarea
+                rows={2}
+                value={settings.custom_terms_en || ''}
+                onChange={e => setSettings({ ...settings, custom_terms_en: e.target.value })}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
+                placeholder="e.g. Warranty/Returns policy"
+              />
+            </div>
+            
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                انوائس کی شرائط (اردو)
+              </label>
+              <textarea
+                rows={2}
+                dir="rtl"
+                value={settings.custom_terms_ur || ''}
+                onChange={e => setSettings({ ...settings, custom_terms_ur: e.target.value })}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
+                placeholder="مثلاً: واپسی کی پالیسی"
+              />
+            </div>
           </div>
         </div>
 

@@ -236,13 +236,13 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ invoice, onC
 
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              {isRTL ? 'نوٹس / تفصیل' : 'Notes / Remarks'}
+              {isRTL ? 'انوائس کی تفصیل / پالیسی' : 'Invoice Description / Policy'}
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={3}
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="e.g. Warranty details or special remarks"
+              placeholder="e.g. 4 days return policy..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
             />
           </div>

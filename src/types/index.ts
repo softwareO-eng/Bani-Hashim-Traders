@@ -172,6 +172,8 @@ export interface ShopSettings {
   currency_symbol: string;
   receipt_footer_en: string;
   receipt_footer_ur: string;
+  custom_terms_en?: string;
+  custom_terms_ur?: string;
   printer_type: '58mm' | '80mm' | 'a5';
   firebase_project_id?: string;
   firebase_database_id?: string;

@@ -117,7 +117,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         <div style="border-top: 1px dashed #d1d5db; padding-top: 12px; text-align: center; font-size: 11px; color: #6b7280;">
           <p style="margin: 0 0 4px 0;">${footerText}</p>
           <p style="margin: 0; font-weight: bold; color: #1f2937;">*** THANK YOU FOR YOUR BUSINESS ***</p>
-          <p style="margin: 4px 0 0 0; font-style: italic; color: #4b5563;">${isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}</p>
+          ${(isUrdu ? settings.custom_terms_ur : settings.custom_terms_en) ? `<p style="margin: 4px 0 0 0; font-style: italic; color: #4b5563;">${isUrdu ? settings.custom_terms_ur : settings.custom_terms_en}</p>` : ''}
         </div>
       `;
     } else {
@@ -157,7 +157,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         <div style="text-align: center; font-size: 10px; color: #666;">
           <p style="margin: 0 0 4px 0;">${footerText}</p>
           <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
-          <p style="margin: 4px 0 0 0; font-style: italic;">${isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}</p>
+          ${(isUrdu ? settings.custom_terms_ur : settings.custom_terms_en) ? `<p style="margin: 4px 0 0 0; font-style: italic;">${isUrdu ? settings.custom_terms_ur : settings.custom_terms_en}</p>` : ''}
         </div>
       `;
     }
@@ -509,9 +509,11 @@ Phone: ${settings.shop_phone}`;
               <p className="font-mono font-bold text-slate-800 tracking-wider">
                 *** {isUrdu ? 'تشریف آوری کا شکریہ' : 'THANK YOU FOR YOUR BUSINESS'} ***
               </p>
-              <p className="italic text-slate-600">
-                {isUrdu ? 'سامان کی واپسی/تبدیلی کی پالیسی 4 دن ہے۔' : 'Returns/Exchange Policy: 4 Days.'}
-              </p>
+              {(isUrdu ? settings.custom_terms_ur : settings.custom_terms_en) && (
+                <p className="italic text-slate-600">
+                  {isUrdu ? settings.custom_terms_ur : settings.custom_terms_en}
+                </p>
+              )}
             </div>
 
           </div>
