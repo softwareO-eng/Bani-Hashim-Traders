@@ -29,19 +29,81 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     window.print();
   };
 
-  // 1. Download Invoice as PNG Image
-  const handleDownloadImage = async () => {
-    const receiptEl = document.getElementById('printable-receipt');
-    if (!receiptEl) return;
+  // Helper: Generate clean canvas without Tailwind oklch color errors
+  const generateCanvas = async () => {
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.top = '-9999px';
+    container.style.left = '-9999px';
+    container.style.width = printFormat === '58mm' ? '220px' : printFormat === '80mm' ? '320px' : '500px';
+    container.style.background = '#ffffff';
+    container.style.color = '#000000';
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.padding = '16px';
+    container.style.boxSizing = 'border-box';
+    container.style.fontSize = '12px';
 
+    const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
+    const shopAddress = isUrdu ? settings.shop_address_ur : settings.shop_address_en;
+    const footerText = isUrdu ? settings.receipt_footer_ur : settings.receipt_footer_en;
+
+    container.innerHTML = `
+      <div style="text-align: center; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+        <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 4px 0;">${shopName}</h2>
+        <p style="font-size: 11px; color: #555; margin: 0 0 2px 0;">${shopAddress}</p>
+        <p style="font-size: 11px; color: #555; margin: 0;">Phone: ${settings.shop_phone}</p>
+        ${invoice.status === 'cancelled' ? '<div style="margin-top:4px; color:red; font-weight:bold;">*** CANCELLED INVOICE ***</div>' : ''}
+      </div>
+      <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between;"><span>Invoice No:</span> <b>${invoice.number}</b></div>
+        <div style="display: flex; justify-content: space-between;"><span>Date:</span> <span>${new Date(invoice.date).toLocaleString()}</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>Customer:</span> <span>${invoice.customer_name || 'Walk-in'}</span></div>
+      </div>
+      <div style="border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+        <div style="display: flex; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;">
+          <span style="flex: 1;">Item</span>
+          <span style="width: 30px; text-align: center;">Qty</span>
+          <span style="width: 60px; text-align: right;">Total</span>
+        </div>
+        ${invoice.items.map(it => `
+          <div style="display: flex; margin-bottom: 4px;">
+            <span style="flex: 1;">${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || ''})</span>
+            <span style="width: 30px; text-align: center;">${it.qty}</span>
+            <span style="width: 60px; text-align: right;">${formatPKR(it.total).replace(/^(Rs|روپے)\s*/, '')}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size: 11px; border-bottom: 1px dashed #999; padding-bottom: 8px; margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between;"><span>Subtotal:</span> <span>${formatPKR(invoice.subtotal)}</span></div>
+        ${invoice.discount > 0 ? `<div style="display: flex; justify-content: space-between; color: #047857;"><span>Discount:</span> <span>-${formatPKR(invoice.discount)}</span></div>` : ''}
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 4px;"><span>Grand Total:</span> <span>${formatPKR(invoice.total)}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-top: 4px;"><span>Paid (${invoice.payment_method}):</span> <span>${formatPKR(invoice.paid)}</span></div>
+        ${invoice.balance > 0 ? `<div style="display: flex; justify-content: space-between; font-weight: bold; color: #b91c1c; margin-top: 4px;"><span>Udhaar Balance:</span> <span>${formatPKR(invoice.balance)}</span></div>` : ''}
+      </div>
+      <div style="text-align: center; font-size: 10px; color: #666;">
+        <p style="margin: 0 0 4px 0;">${footerText}</p>
+        <p style="margin: 0; font-weight: bold;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+      </div>
+    `;
+
+    document.body.appendChild(container);
     try {
-      setIsGenerating(true);
-      const canvas = await html2canvas(receiptEl, {
+      const canvas = await html2canvas(container, {
         scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff'
       });
+      return canvas;
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
 
+  // 1. Download Invoice as PNG Image
+  const handleDownloadImage = async () => {
+    try {
+      setIsGenerating(true);
+      const canvas = await generateCanvas();
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
@@ -59,17 +121,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
 
   // 2. Download Invoice as PDF Document
   const handleDownloadPDF = async () => {
-    const receiptEl = document.getElementById('printable-receipt');
-    if (!receiptEl) return;
-
     try {
       setIsGenerating(true);
-      const canvas = await html2canvas(receiptEl, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      });
-
+      const canvas = await generateCanvas();
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -100,36 +154,31 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       cleanPhone = '92' + cleanPhone;
     }
 
-    const receiptEl = document.getElementById('printable-receipt');
-    if (receiptEl && navigator.share && window.File) {
-      try {
-        setIsGenerating(true);
-        const canvas = await html2canvas(receiptEl, { scale: 2.5, backgroundColor: '#ffffff' });
-        
-        // Convert canvas to blob file
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-        if (blob) {
-          const file = new File([blob], `Invoice_${invoice.number}.png`, { type: 'image/png' });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: `Invoice ${invoice.number} - Bani Hashim Traders`,
-              text: isUrdu 
-                ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}` 
-                : `Bani Hashim Traders - Invoice #${invoice.number}`,
-              files: [file]
-            });
-            setIsGenerating(false);
-            return;
-          }
+    try {
+      setIsGenerating(true);
+      const canvas = await generateCanvas();
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob && navigator.share && window.File) {
+        const file = new File([blob], `Invoice_${invoice.number}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: `Invoice ${invoice.number} - Bani Hashim Traders`,
+            text: isUrdu 
+              ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}` 
+              : `Bani Hashim Traders - Invoice #${invoice.number}`,
+            files: [file]
+          });
+          setIsGenerating(false);
+          return;
         }
-      } catch (e) {
-        console.warn('Native web share fallback to WhatsApp Web text format:', e);
-      } finally {
-        setIsGenerating(false);
       }
+    } catch (e) {
+      console.warn('Native share note:', e);
+    } finally {
+      setIsGenerating(false);
     }
 
-    // Fallback: Also auto-trigger image download and open WhatsApp with prefilled bill summary
+    // Fallback: Trigger image download and open WhatsApp Web with bill summary
     handleDownloadImage();
 
     const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
