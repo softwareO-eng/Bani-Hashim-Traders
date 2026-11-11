@@ -172,15 +172,18 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       container.style.fontFamily = 'Arial, sans-serif';
 
       const canvas = await html2canvas(container, {
-        scale: 2.5,
+        scale: 1, // Reduced scale for better mobile performance and compatibility
         useCORS: true,
         backgroundColor: '#ffffff',
         // Explicitly ignore global stylesheets
         ignoreElements: (element) => element.tagName === 'STYLE' || element.tagName === 'LINK',
         allowTaint: false,
-        logging: false
+        logging: true // Enabled logging temporarily for debugging
       });
       return canvas;
+    } catch (err) {
+      console.error('Canvas generation error:', err);
+      throw err;
     } finally {
       document.body.removeChild(container);
     }
@@ -198,9 +201,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Image generation failed', err);
-      alert('Failed to generate image');
+      alert('Failed to generate image: ' + (err.message || 'Unknown error'));
     } finally {
       setIsGenerating(false);
     }
