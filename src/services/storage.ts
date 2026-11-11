@@ -48,13 +48,13 @@ export const INITIAL_CATEGORIES: Category[] = [
 ];
 
 export const INITIAL_SETTINGS: ShopSettings = {
-  shop_name_en: 'Al-Rehman Mobile Accessories',
-  shop_name_ur: 'الرحمٰن موبائل اسیسریز سینٹر',
+  shop_name_en: 'Bani Hashim Traders',
+  shop_name_ur: 'بنی ہاشم ٹریڈرز',
   shop_address_en: 'Shop # 18, Basement, Hafeez Center, Gulberg III, Lahore',
   shop_address_ur: 'دکان نمبر 18، بیسمنٹ، حفیظ سینٹر، مین بلیوارڈ گلبرگ، لاہور',
   shop_phone: '0300-4567890',
   shop_whatsapp: '0300-4567890',
-  invoice_prefix: 'INV-2026',
+  invoice_prefix: 'BHT-2026',
   tax_rate: 0,
   currency_symbol: 'Rs',
   receipt_footer_en: 'Accessories once sold can only be exchanged within 3 days. No cash refund.',
@@ -94,6 +94,13 @@ class StorageService {
       }
     } else {
       this.db = this.initFreshDatabase();
+      this.persist();
+    }
+
+    if (this.db.settings && this.db.settings.shop_name_en !== 'Bani Hashim Traders') {
+      this.db.settings.shop_name_en = 'Bani Hashim Traders';
+      this.db.settings.shop_name_ur = 'بنی ہاشم ٹریڈرز';
+      this.db.settings.invoice_prefix = 'BHT-2026';
       this.persist();
     }
 
