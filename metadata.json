@@ -1,0 +1,6 @@
+{
+  "name": "PakMobile POS - دکان مینیجر",
+  "description": "Production Mobile Accessories Shop Management App for Pakistan with English & Urdu support, Udhaar tracking, POS, barcode scanning, and thermal printing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

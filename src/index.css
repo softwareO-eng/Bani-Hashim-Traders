@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-urdu-heading: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+    --font-urdu-body: 'Noto Naskh Arabic', 'Noto Nastaliq Urdu', sans-serif;
+  }
+
+  [dir="rtl"] {
+    font-family: var(--font-urdu-body);
+  }
+
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] .urdu-heading {
+    font-family: var(--font-urdu-heading);
+    line-height: 1.8;
+  }
+
+  /* Smooth scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
+  }
+}
+
+/* Receipt Print Media Queries */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #printable-receipt,
+  #printable-receipt * {
+    visibility: visible;
+  }
+
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+    color: black !important;
+  }
+
+  /* 58mm roll */
+  .receipt-58mm {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    font-size: 11px !important;
+    padding: 4px !important;
+  }
+
+  /* 80mm roll */
+  .receipt-80mm {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    font-size: 12px !important;
+    padding: 8px !important;
+  }
+
+  /* A5 Invoice */
+  .receipt-a5 {
+    width: 148mm !important;
+    max-width: 148mm !important;
+    font-size: 13px !important;
+    padding: 16px !important;
+  }
+
+  @page {
+    margin: 0;
+    size: auto;
+  }
+}

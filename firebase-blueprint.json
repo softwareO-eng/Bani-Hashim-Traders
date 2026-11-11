@@ -1,0 +1,139 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Base mobile accessory product catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name_en": { "type": "string", "maxLength": 200 },
+        "name_ur": { "type": "string", "maxLength": 200 },
+        "category_id": { "type": "string", "maxLength": 100 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "purchase_unit": { "type": "string", "maxLength": 100 },
+        "units_per_purchase": { "type": "number" },
+        "sell_unit": { "type": "string", "maxLength": 100 },
+        "min_stock": { "type": "number" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name_en"]
+    },
+    "Variant": {
+      "title": "Variant",
+      "description": "Product variant with phone compatibility and pricing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "color": { "type": "string", "maxLength": 100 },
+        "compatible_models": { "type": "array" },
+        "sku": { "type": "string", "maxLength": 100 },
+        "barcode": { "type": "string", "maxLength": 100 },
+        "cost": { "type": "number" },
+        "retail_price": { "type": "number" },
+        "wholesale_price": { "type": "number" },
+        "stock": { "type": "number" }
+      },
+      "required": ["id", "product_id", "sku", "retail_price"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer account with Udhaar balance tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "cnic": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 300 },
+        "type": { "type": "string", "enum": ["retail", "wholesale"] },
+        "balance": { "type": "number" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "POS sales invoice with line items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string", "maxLength": 100 },
+        "customer_id": { "type": "string" },
+        "customer_name": { "type": "string", "maxLength": 150 },
+        "customer_phone": { "type": "string", "maxLength": 50 },
+        "date": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "paid": { "type": "number" },
+        "balance": { "type": "number" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "payment_method": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["id", "number", "total", "paid"]
+    },
+    "StockMove": {
+      "title": "StockMove",
+      "description": "Audit movement of stock in and out of shop",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "variant_id": { "type": "string" },
+        "qty": { "type": "number" },
+        "type": { "type": "string" },
+        "ref_type": { "type": "string" },
+        "ref_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "note": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "variant_id", "qty", "type"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Shop settings and receipt preferences",
+      "type": "object",
+      "properties": {
+        "shop_name_en": { "type": "string" },
+        "shop_name_ur": { "type": "string" },
+        "shop_phone": { "type": "string" },
+        "shop_address_en": { "type": "string" },
+        "shop_address_ur": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "#/entities/Product",
+      "description": "All accessories products"
+    },
+    "/variants/{variantId}": {
+      "schema": "#/entities/Variant",
+      "description": "All accessory variants"
+    },
+    "/customers/{customerId}": {
+      "schema": "#/entities/Customer",
+      "description": "Customer accounts and Udhaar ledgers"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "#/entities/Invoice",
+      "description": "Completed and cancelled sales invoices"
+    },
+    "/stockMoves/{moveId}": {
+      "schema": "#/entities/StockMove",
+      "description": "Audit logs of inventory changes"
+    },
+    "/settings/config": {
+      "schema": "#/entities/Settings",
+      "description": "Shop configuration"
+    }
+  }
+}
