@@ -79,6 +79,7 @@ const MainApp: React.FC = () => {
         currentUser={currentUser}
         onUserChanged={u => setCurrentUser(u)}
         onOpenSettings={() => setActiveScreen('settings')}
+        onNavigate={screen => setActiveScreen(screen as ScreenId)}
       />
 
       {/* Secondary Desktop / Tablet Tab Navigation */}
@@ -112,8 +113,8 @@ const MainApp: React.FC = () => {
       </main>
 
       {/* Mobile Bottom Navigation Bar (Optimized for Android Phone usage in Pakistan) */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around py-1.5 px-2 z-40 shadow-lg">
-        {navItems.slice(0, 5).map(item => {
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around py-1.5 px-1 z-40 shadow-lg">
+        {navItems.slice(0, 6).map(item => {
           const Icon = item.icon;
           const isActive = activeScreen === item.id;
 
@@ -122,7 +123,7 @@ const MainApp: React.FC = () => {
               key={item.id}
               onClick={() => setActiveScreen(item.id)}
               className={`flex flex-col items-center justify-center p-1 rounded-xl transition-all ${
-                isActive ? 'text-emerald-600 font-bold' : 'text-slate-400'
+                isActive ? 'text-emerald-600 font-bold' : 'text-slate-500'
               }`}
             >
               <Icon className="w-5 h-5" />

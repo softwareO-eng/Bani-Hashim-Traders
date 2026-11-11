@@ -4,19 +4,21 @@ import { storage } from '../services/storage';
 import { User, UserRole } from '../types';
 import { 
   Globe, Wifi, WifiOff, Shield, UserCircle, LogOut, 
-  Store, ChevronDown, Check
+  Store, ChevronDown, Check, BarChart3, Users, Package, ArrowUpDown, ClipboardCheck
 } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: User;
   onUserChanged: (user: User) => void;
   onOpenSettings: () => void;
+  onNavigate?: (screen: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onUserChanged,
-  onOpenSettings
+  onOpenSettings,
+  onNavigate
 }) => {
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const settings = storage.getSettings();
@@ -185,15 +187,55 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
 
                 <div className="border-t border-slate-100 my-1"></div>
+                <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {isRTL ? 'تمام مینیو اور رپورٹس:' : 'All Screens & Reports:'}
+                </div>
+
+                {currentUser.role === 'owner' && (
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      if (onNavigate) onNavigate('reports');
+                    }}
+                    className="w-full px-3 py-2 text-start text-xs text-emerald-700 font-bold hover:bg-emerald-50 flex items-center gap-2"
+                  >
+                    <BarChart3 className="w-4 h-4 text-emerald-600" />
+                    <span>{isRTL ? 'نفع و نقصان اور خلاصہ (P&L Reports)' : 'Profit & Loss & Reports'}</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    if (onNavigate) onNavigate('customers');
+                  }}
+                  className="w-full px-3 py-2 text-start text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4 text-slate-500" />
+                  <span>{t('nav.customers')}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    if (onNavigate) onNavigate('products');
+                  }}
+                  className="w-full px-3 py-2 text-start text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Package className="w-4 h-4 text-slate-500" />
+                  <span>{t('nav.products')}</span>
+                </button>
+
+                <div className="border-t border-slate-100 my-1"></div>
 
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     onOpenSettings();
                   }}
-                  className="w-full px-4 py-2 text-start text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className="w-full px-3 py-2 text-start text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
-                  <Shield className="w-3.5 h-3.5 text-slate-500" />
+                  <Shield className="w-4 h-4 text-slate-500" />
                   <span>{t('nav.settings')}</span>
                 </button>
               </div>
