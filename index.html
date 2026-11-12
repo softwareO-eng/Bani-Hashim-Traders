@@ -21,6 +21,7 @@
         var hasBooted = false;
         function loadFallbackBundle() {
           if (hasBooted || window.__APP_BOOTED__) return;
+          if (document.querySelector('script[src*="assets/index-"]')) return;
           var root = document.getElementById('root');
           if (root && root.querySelector('.initial-static-loader')) {
             hasBooted = true;
@@ -28,8 +29,9 @@
             console.log('Static host mode: bootstrapping precompiled bundle...');
             var pathname = window.location.pathname;
             var baseDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
-            var jsUrl = baseDir + 'assets/app.js';
-            var cssUrl = baseDir + 'assets/app.css';
+            var cacheBust = '?v=' + Date.now();
+            var jsUrl = baseDir + 'assets/app.js' + cacheBust;
+            var cssUrl = baseDir + 'assets/app.css' + cacheBust;
 
             var s = document.createElement('script');
             s.type = 'module';

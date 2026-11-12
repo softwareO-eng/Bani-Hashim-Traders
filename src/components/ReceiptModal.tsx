@@ -33,7 +33,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
    * Zero html2canvas dependency, zero external CSS/oklch parsing, 100% crash-proof
    * across desktop browsers, Android Chrome, and GitHub Pages.
    */
-  const generateCanvas = async (): Promise<HTMLCanvasElement> => {
+  const generateCanvas = (): HTMLCanvasElement => {
     const scale = 2;
     const logicalWidth =
       printFormat === '58mm' ? 360 :
@@ -584,32 +584,74 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     return canvas;
   };
 
+  const dataURLToBlob = (dataUrl: string): Blob => {
+    const parts = dataUrl.split(',');
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const binary = atob(parts[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mime });
+  };
+
+  const buildPdfDoc = (canvas: HTMLCanvasElement): jsPDF => {
+    const imgData = canvas.toDataURL('image/png');
+    const pageWidthMm =
+      printFormat === '58mm' ? 58 :
+      printFormat === '80mm' ? 80 :
+      printFormat === 'a5' ? 148 : 210;
+
+    const marginMm = printFormat === '58mm' || printFormat === '80mm' ? 1 : 8;
+    const initialUsableW = pageWidthMm - marginMm * 2;
+    const estimatedImgH = (canvas.height * initialUsableW) / canvas.width;
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format:
+        printFormat === '58mm' ? [58, Math.max(80, estimatedImgH + marginMm * 2)] :
+        printFormat === '80mm' ? [80, Math.max(100, estimatedImgH + marginMm * 2)] :
+        printFormat === 'a5' ? 'a5' : 'a4'
+    });
+
+    const pdfPageW = pdf.internal.pageSize.getWidth();
+    const pdfPageH = pdf.internal.pageSize.getHeight();
+    const maxW = pdfPageW - marginMm * 2;
+    const maxH = pdfPageH - marginMm * 2;
+
+    let drawW = maxW;
+    let drawH = (canvas.height * drawW) / canvas.width;
+
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = (canvas.width * drawH) / canvas.height;
+    }
+
+    const offsetX = (pdfPageW - drawW) / 2;
+    pdf.addImage(imgData, 'PNG', offsetX, marginMm, drawW, drawH);
+    return pdf;
+  };
+
+  const triggerBlobDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
+
   // 1. Download Invoice as PNG Image
-  const handleDownloadImage = async () => {
+  const handleDownloadImage = () => {
     try {
       setIsGenerating(true);
-      const canvas = await generateCanvas();
-      const filename = `Invoice_${invoice.number}.png`;
-
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 3000);
-      } else {
-        const image = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+      const canvas = generateCanvas();
+      const blob = dataURLToBlob(canvas.toDataURL('image/png'));
+      triggerBlobDownload(blob, `Invoice_${invoice.number}.png`);
     } catch (err: any) {
       console.error('Image generation failed', err);
       alert('Failed to save invoice image: ' + (err?.message || String(err)));
@@ -619,45 +661,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
   };
 
   // 2. Download Invoice as PDF Document
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = () => {
     try {
       setIsGenerating(true);
-      const canvas = await generateCanvas();
-      const imgData = canvas.toDataURL('image/png');
-
-      const pageWidthMm =
-        printFormat === '58mm' ? 58 :
-        printFormat === '80mm' ? 80 :
-        printFormat === 'a5' ? 148 : 210;
-
-      const marginMm = printFormat === '58mm' || printFormat === '80mm' ? 1 : 8;
-      const initialUsableW = pageWidthMm - marginMm * 2;
-      const estimatedImgH = (canvas.height * initialUsableW) / canvas.width;
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format:
-          printFormat === '58mm' ? [58, Math.max(80, estimatedImgH + marginMm * 2)] :
-          printFormat === '80mm' ? [80, Math.max(100, estimatedImgH + marginMm * 2)] :
-          printFormat === 'a5' ? 'a5' : 'a4'
-      });
-
-      const pdfPageW = pdf.internal.pageSize.getWidth();
-      const pdfPageH = pdf.internal.pageSize.getHeight();
-      const maxW = pdfPageW - marginMm * 2;
-      const maxH = pdfPageH - marginMm * 2;
-
-      let drawW = maxW;
-      let drawH = (canvas.height * drawW) / canvas.width;
-
-      if (drawH > maxH) {
-        drawH = maxH;
-        drawW = (canvas.width * drawH) / canvas.height;
-      }
-
-      const offsetX = (pdfPageW - drawW) / 2;
-      pdf.addImage(imgData, 'PNG', offsetX, marginMm, drawW, drawH);
+      const canvas = generateCanvas();
+      const pdf = buildPdfDoc(canvas);
       pdf.save(`Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`);
     } catch (err: any) {
       console.error('PDF generation failed', err);
@@ -667,8 +675,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     }
   };
 
-  // 3. Share Invoice Image / Details on WhatsApp
-  const handleWhatsAppShare = async () => {
+  // 3. 1-Click Share Invoice Image OR PDF on WhatsApp
+  const handleWhatsAppShare = async (kind: 'image' | 'pdf') => {
     const phone = invoice.customer_phone?.replace(/[^0-9]/g, '') || '';
     let cleanPhone = phone;
     if (cleanPhone.startsWith('0')) {
@@ -677,47 +685,53 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       cleanPhone = '92' + cleanPhone;
     }
 
-    let sharedViaNative = false;
     try {
       setIsGenerating(true);
-      const canvas = await generateCanvas();
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (blob && typeof navigator.share === 'function' && typeof File === 'function') {
-        const file = new File([blob], `Invoice_${invoice.number}.png`, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: `Invoice ${invoice.number} - Bani Hashim Traders`,
-            text: isUrdu
-              ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}`
-              : `Bani Hashim Traders - Invoice #${invoice.number}`,
-            files: [file]
-          });
-          sharedViaNative = true;
+      const canvas = generateCanvas();
+      const fileBlob =
+        kind === 'pdf'
+          ? buildPdfDoc(canvas).output('blob')
+          : dataURLToBlob(canvas.toDataURL('image/png'));
+      const filename =
+        kind === 'pdf'
+          ? `Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`
+          : `Invoice_${invoice.number}.png`;
+      const mimeType = kind === 'pdf' ? 'application/pdf' : 'image/png';
+
+      if (typeof navigator.share === 'function' && typeof File === 'function') {
+        const file = new File([fileBlob], filename, { type: mimeType });
+        const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+        if (canShareFiles) {
+          try {
+            await navigator.share({
+              title: `Invoice ${invoice.number} - Bani Hashim Traders`,
+              text: isUrdu
+                ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}`
+                : `Bani Hashim Traders - Invoice #${invoice.number}`,
+              files: [file]
+            });
+            return;
+          } catch (shareErr: any) {
+            if (shareErr?.name === 'AbortError') return;
+            console.warn('Native file share fallback:', shareErr);
+          }
         }
       }
-    } catch (e: any) {
-      if (e?.name === 'AbortError') {
-        setIsGenerating(false);
-        return;
-      }
-      console.warn('Native share fallback:', e);
-    } finally {
-      setIsGenerating(false);
-    }
 
-    if (sharedViaNative) return;
+      // Desktop / non-WebShare fallback: Download file immediately & open WhatsApp chat
+      triggerBlobDownload(fileBlob, filename);
 
-    // Fallback: Download PNG image and open WhatsApp Web/App with bill summary
-    await handleDownloadImage();
+      const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
+      const itemsList = invoice.items
+        .map(it => `• ${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || 'Item'}) x${it.qty} = ${formatPKR(it.total)}`)
+        .join('\n');
 
-    const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
-    const itemsList = invoice.items
-      .map(it => `• ${isUrdu ? (it.product_name_ur || it.product_name_en) : it.product_name_en} (${it.variant_title || 'Item'}) x${it.qty} = ${formatPKR(it.total)}`)
-      .join('\n');
+      const attachmentNote = kind === 'pdf'
+        ? (isUrdu ? '*(نوٹ: انوائس کی پی ڈی ایف فائل ڈاؤنلوڈ ہو چکی ہے۔ آپ اسے ساتھ منسلک کر سکتے ہیں۔)*' : '*(Note: Invoice PDF downloaded automatically. Attach it to this message.)*')
+        : (isUrdu ? '*(نوٹ: انوائس کی تصویری رسید ڈاؤنلوڈ ہو چکی ہے۔ آپ اسے ساتھ منسلک کر سکتے ہیں۔)*' : '*(Note: Invoice image downloaded automatically. Attach it to this message.)*');
 
-    let text = '';
-    if (isUrdu) {
-      text = `*${shopName}*
+      const text = isUrdu
+        ? `*${shopName}*
 *انوائس نمبر:* ${invoice.number}
 *تاریخ:* ${new Date(invoice.date).toLocaleDateString('ur-PK')}
 *گاہک:* ${invoice.customer_name || 'عام گاہک'}
@@ -731,12 +745,11 @@ ${itemsList}
 *وصول شدہ:* ${formatPKR(invoice.paid)}
 *بقایا ادھار:* ${formatPKR(invoice.balance)}
 
-*(نوٹ: انوائس کی تصویری رسید ڈاؤنلوڈ ہو چکی ہے۔ آپ اسے ساتھ منسلک کر سکتے ہیں۔)*
+${attachmentNote}
 
 ${settings.receipt_footer_ur}
-رابطہ: ${settings.shop_phone}`;
-    } else {
-      text = `*${shopName}*
+رابطہ: ${settings.shop_phone}`
+        : `*${shopName}*
 *Invoice #:* ${invoice.number}
 *Date:* ${new Date(invoice.date).toLocaleString()}
 *Customer:* ${invoice.customer_name || 'Walk-in'}
@@ -750,16 +763,21 @@ ${itemsList}
 *Paid:* ${formatPKR(invoice.paid)}
 *Udhaar Balance:* ${formatPKR(invoice.balance)}
 
-*(Note: Invoice image downloaded automatically. You can attach it to this message.)*
+${attachmentNote}
 
 ${settings.receipt_footer_en}
 Phone: ${settings.shop_phone}`;
-    }
 
-    const url = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+      const url = cleanPhone
+        ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    } catch (err: any) {
+      console.error('WhatsApp share failed', err);
+      alert('Failed to share invoice: ' + (err?.message || String(err)));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -984,43 +1002,56 @@ Phone: ${settings.shop_phone}`;
           </div>
         </div>
 
-        {/* Action Buttons (WhatsApp, Image export, PDF download & Thermal Print) */}
-        <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button
-            onClick={handleWhatsAppShare}
-            disabled={isGenerating}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
-          >
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-            <span>{isUrdu ? 'واٹس ایپ انوائس' : 'WhatsApp Share'}</span>
-          </button>
+        {/* Action Buttons: 1-Click WhatsApp Image/PDF Share, Save Image, Download PDF & Print */}
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleWhatsAppShare('image')}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+              <span>{isUrdu ? 'واٹس ایپ تصویر شیئر' : 'WhatsApp Image'}</span>
+            </button>
 
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isGenerating}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
-          >
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-            <span>{isUrdu ? 'پی ڈی ایف (PDF)' : 'Download PDF'}</span>
-          </button>
+            <button
+              onClick={() => handleWhatsAppShare('pdf')}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              <span>{isUrdu ? 'واٹس ایپ پی ڈی ایف' : 'WhatsApp PDF'}</span>
+            </button>
+          </div>
 
-          <button
-            onClick={handleDownloadImage}
-            disabled={isGenerating}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
-          >
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-            <span>{isUrdu ? 'تصویر (Image)' : 'Save Image'}</span>
-          </button>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={handleDownloadImage}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+              <span>{isUrdu ? 'تصویر محفوظ' : 'Save Image'}</span>
+            </button>
 
-          <button
-            onClick={handlePrint}
-            disabled={isGenerating}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-2xs active:scale-98"
-          >
-            <Printer className="w-4 h-4" />
-            <span>{isUrdu ? 'پرنٹ رسید' : 'Print Receipt'}</span>
-          </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-2xs active:scale-98 disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+              <span>{isUrdu ? 'پی ڈی ایف' : 'Save PDF'}</span>
+            </button>
+
+            <button
+              onClick={handlePrint}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-2xs active:scale-98"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>{isUrdu ? 'پرنٹ' : 'Print'}</span>
+            </button>
+          </div>
         </div>
 
       </div>
