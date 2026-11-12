@@ -123,11 +123,11 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all text-xs"
             >
               <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
-                {currentUser.name.charAt(0)}
+                {currentUser.role === 'owner' ? 'O' : currentUser.name.charAt(0)}
               </div>
               <div className="hidden sm:block text-start">
                 <div className="font-semibold text-slate-800 leading-tight text-xs">
-                  {currentUser.name}
+                  {currentUser.role === 'owner' ? t('roles.owner') : currentUser.name}
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono">
                   {roleInfo.label}
@@ -143,7 +143,9 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className="px-4 py-2 border-b border-slate-100">
                   <p className="text-xs text-slate-500">{isRTL ? 'لاگ ان شدہ صارف:' : 'Signed in as:'}</p>
-                  <p className="text-sm font-bold text-slate-900">{currentUser.name}</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    {currentUser.role === 'owner' ? t('roles.owner') : currentUser.name}
+                  </p>
                   <span className={`inline-block px-2 py-0.5 mt-1 rounded text-[10px] font-semibold border ${roleInfo.bg}`}>
                     {roleInfo.label}
                   </span>

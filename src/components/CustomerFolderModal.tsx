@@ -397,10 +397,7 @@ Contact: ${settings.shop_phone}`;
                     </div>
 
                     {/* Financial summary */}
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
-                      <span className="text-slate-500">
-                        {isRTL ? 'کیشیئر:' : 'Staff:'} <strong className="text-slate-700">{inv.user_name}</strong>
-                      </span>
+                    <div className="flex items-center justify-end text-xs pt-2 border-t border-slate-100">
                       <div className="flex items-center gap-3 font-mono">
                         <span>{isRTL ? 'کل بل:' : 'Total:'} <strong>{formatPKR(inv.total)}</strong></span>
                         <span className="text-emerald-600">{isRTL ? 'ادا شدہ:' : 'Paid:'} <strong>{formatPKR(inv.paid)}</strong></span>

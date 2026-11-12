@@ -51,7 +51,7 @@ export function safeStorageRemove(key: string): void {
 export const INITIAL_USERS: User[] = [
   {
     id: 'user-1',
-    name: 'Muhammad Usman (Owner)',
+    name: 'Shop Owner',
     phone: '03001234567',
     role: 'owner',
     pin_hash: '1234',
@@ -142,10 +142,21 @@ class StorageService {
       }
     }
 
+    if (this.db.users) {
+      this.db.users = this.db.users.map(u =>
+        u.name && u.name.includes('Muhammad Usman') ? { ...u, name: 'Shop Owner' } : u
+      );
+    }
+
     const savedUser = safeStorageGet(CURRENT_USER_KEY);
     if (savedUser) {
       try {
-        this.currentUser = JSON.parse(savedUser);
+        const parsed = JSON.parse(savedUser);
+        if (parsed?.name && parsed.name.includes('Muhammad Usman')) {
+          parsed.name = 'Shop Owner';
+          safeStorageSet(CURRENT_USER_KEY, JSON.stringify(parsed));
+        }
+        this.currentUser = parsed;
       } catch {
         this.currentUser = INITIAL_USERS[0];
       }
