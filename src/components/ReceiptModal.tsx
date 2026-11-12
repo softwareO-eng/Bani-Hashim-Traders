@@ -31,9 +31,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
 
   const generateCanvas = async () => {
     const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.top = '-9999px';
-    container.style.left = '-9999px';
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.opacity = '0.01';
+    container.style.pointerEvents = 'none';
+    container.style.zIndex = '999999';
     container.style.width = '640px';
     container.style.background = '#ffffff';
     container.style.color = '#0f172a';
@@ -155,7 +158,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       document.body.removeChild(link);
     } catch (err: any) {
       console.error('Image generation failed', err);
-      alert('Error: ' + JSON.stringify(err));
+      alert('Error: ' + (err?.message || err?.toString() || 'Unknown error'));
     } finally {
       setIsGenerating(false);
     }
@@ -178,9 +181,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('PDF generation failed', err);
-      alert('Failed to generate PDF document');
+      alert('Error: ' + (err?.message || err?.toString() || 'Unknown error'));
     } finally {
       setIsGenerating(false);
     }
