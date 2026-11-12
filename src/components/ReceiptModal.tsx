@@ -286,10 +286,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
           mono: true
         });
       }
-      metaRows.push({
-        label: isUrdu ? 'کاؤنٹر کیشیئر:' : 'Served By:',
-        value: invoice.user_name
-      });
 
       const metaRowH = isNarrow ? 18 : 21;
       const metaBoxH = metaRows.length * metaRowH + 16;
@@ -897,10 +893,6 @@ Phone: ${settings.shop_phone}`;
                   <span className="font-mono">{invoice.customer_phone}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span>{isUrdu ? 'کاؤنٹر کیشیئر:' : 'Served By:'}</span>
-                <span>{invoice.user_name}</span>
-              </div>
             </div>
 
             {/* Items Table */}
