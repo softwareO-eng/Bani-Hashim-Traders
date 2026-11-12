@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { storage } from '../services/storage';
 import { ShopSettings } from '../types';
@@ -13,10 +13,26 @@ export const SettingsScreen: React.FC = () => {
   const [settings, setSettings] = useState<ShopSettings>(storage.getSettings());
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [firebaseStatus, setFirebaseStatus] = useState<string | null>(null);
+  const isDirtyRef = useRef(false);
+
+  useEffect(() => {
+    const unsub = storage.subscribeLocal(() => {
+      if (!isDirtyRef.current) {
+        setSettings(storage.getSettings());
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const updateField = <K extends keyof ShopSettings>(key: K, value: ShopSettings[K]) => {
+    isDirtyRef.current = true;
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     storage.updateSettings(settings);
+    isDirtyRef.current = false;
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -105,26 +121,29 @@ export const SettingsScreen: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Shop Name (English)
+                Shop Name (English) <span className="text-[10px] font-normal text-emerald-700">• Shown on Main Page & Invoices</span>
               </label>
               <input
                 type="text"
+                required
                 value={settings.shop_name_en}
-                onChange={e => setSettings({ ...settings, shop_name_en: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                onChange={e => updateField('shop_name_en', e.target.value)}
+                placeholder="Enter your shop name"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-semibold"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                دکان کا نام (اردو)
+                دکان کا نام (اردو) <span className="text-[10px] font-normal text-emerald-700">• مین پیج اور رسید پر نظر آئے گا</span>
               </label>
               <input
                 type="text"
                 dir="rtl"
                 value={settings.shop_name_ur}
-                onChange={e => setSettings({ ...settings, shop_name_ur: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                onChange={e => updateField('shop_name_ur', e.target.value)}
+                placeholder="دکان کا نام درج کریں"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-semibold"
               />
             </div>
 
@@ -135,7 +154,7 @@ export const SettingsScreen: React.FC = () => {
               <input
                 type="text"
                 value={settings.shop_address_en}
-                onChange={e => setSettings({ ...settings, shop_address_en: e.target.value })}
+                onChange={e => updateField('shop_address_en', e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
               />
             </div>
@@ -148,7 +167,7 @@ export const SettingsScreen: React.FC = () => {
                 type="text"
                 dir="rtl"
                 value={settings.shop_address_ur}
-                onChange={e => setSettings({ ...settings, shop_address_ur: e.target.value })}
+                onChange={e => updateField('shop_address_ur', e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
               />
             </div>
@@ -160,7 +179,7 @@ export const SettingsScreen: React.FC = () => {
               <input
                 type="text"
                 value={settings.shop_phone}
-                onChange={e => setSettings({ ...settings, shop_phone: e.target.value })}
+                onChange={e => updateField('shop_phone', e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg font-mono"
               />
             </div>
@@ -171,7 +190,7 @@ export const SettingsScreen: React.FC = () => {
               </label>
               <select
                 value={settings.printer_type}
-                onChange={e => setSettings({ ...settings, printer_type: e.target.value as any })}
+                onChange={e => updateField('printer_type', e.target.value as any)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
               >
                 <option value="58mm">58mm Thermal Receipt (ESC/POS)</option>
@@ -187,7 +206,7 @@ export const SettingsScreen: React.FC = () => {
               <textarea
                 rows={2}
                 value={settings.custom_terms_en || ''}
-                onChange={e => setSettings({ ...settings, custom_terms_en: e.target.value })}
+                onChange={e => updateField('custom_terms_en', e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
                 placeholder="e.g. Warranty/Returns policy"
               />
@@ -201,7 +220,7 @@ export const SettingsScreen: React.FC = () => {
                 rows={2}
                 dir="rtl"
                 value={settings.custom_terms_ur || ''}
-                onChange={e => setSettings({ ...settings, custom_terms_ur: e.target.value })}
+                onChange={e => updateField('custom_terms_ur', e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg"
                 placeholder="مثلاً: واپسی کی پالیسی"
               />

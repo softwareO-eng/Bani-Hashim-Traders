@@ -33,12 +33,23 @@ const MainApp: React.FC = () => {
   const [activeScreen, setActiveScreen] = useState<ScreenId>('pos');
   const [, setRealtimeTick] = useState(0);
 
-  // Real-time Firestore sync listener across all connected devices
+  // Real-time Firestore & local settings sync listener across all connected devices
   useEffect(() => {
-    const unsub = storage.subscribeRealtime(() => {
+    const updateTitleAndTick = () => {
+      const s = storage.getSettings();
+      if (s.shop_name_en || s.shop_name_ur) {
+        document.title = [s.shop_name_en, s.shop_name_ur].filter(Boolean).join(' - ');
+      }
       setRealtimeTick(prev => prev + 1);
-    });
-    return () => unsub();
+    };
+
+    updateTitleAndTick();
+    const unsubRemote = storage.subscribeRealtime(updateTitleAndTick);
+    const unsubLocal = storage.subscribeLocal(updateTitleAndTick);
+    return () => {
+      unsubRemote();
+      unsubLocal();
+    };
   }, []);
 
   if (!currentUser) {

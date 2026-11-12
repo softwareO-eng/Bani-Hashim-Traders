@@ -4,7 +4,7 @@ import {
 } from '../types';
 import { db } from './firebase';
 import { 
-  collection, doc, setDoc, deleteDoc, getDocs, onSnapshot 
+  collection, doc, setDoc, deleteDoc, getDoc, getDocs, onSnapshot 
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -119,6 +119,24 @@ export interface AppDatabase {
 class StorageService {
   private db: AppDatabase;
   private currentUser: User;
+  private localListeners: Set<() => void> = new Set();
+
+  public subscribeLocal(listener: () => void): () => void {
+    this.localListeners.add(listener);
+    return () => {
+      this.localListeners.delete(listener);
+    };
+  }
+
+  private notifyLocal() {
+    this.localListeners.forEach(fn => {
+      try {
+        fn();
+      } catch {
+        // ignore listener error
+      }
+    });
+  }
 
   constructor() {
     const saved = safeStorageGet(STORAGE_KEY);
@@ -253,7 +271,14 @@ class StorageService {
       expSnap.forEach(d => firestoreExpenses.push(d.data() as Expense));
       this.db.expenses = firestoreExpenses;
 
+      // Sync shop settings
+      const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
+      if (settingsSnap.exists()) {
+        this.db.settings = { ...this.db.settings, ...(settingsSnap.data() as Partial<ShopSettings>) };
+      }
+
       this.persist();
+      this.notifyLocal();
     } catch (e) {
       console.warn('Firebase initial pull note (using offline local database):', e);
     }
@@ -286,8 +311,19 @@ class StorageService {
       });
     });
 
+    const unsubSettings = onSnapshot(doc(activeDb, 'settings', 'config'), (snapshot) => {
+      if (snapshot.exists()) {
+        this.db.settings = { ...this.db.settings, ...(snapshot.data() as Partial<ShopSettings>) };
+        this.persist();
+        onDataUpdate();
+      }
+    }, (err) => {
+      console.warn('Realtime listener note for settings/config:', err);
+    });
+
     return () => {
       unsubscribes.forEach(unsub => unsub());
+      unsubSettings();
     };
   }
 
@@ -1174,6 +1210,7 @@ class StorageService {
     this.db.settings = { ...this.db.settings, ...updates };
     this.syncToFirestore('settings', 'config', this.db.settings);
     this.persist();
+    this.notifyLocal();
   }
 
   // Clear ALL data completely
