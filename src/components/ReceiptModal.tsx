@@ -32,24 +32,105 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
   const generateCanvas = async () => {
     const container = document.createElement('div');
     container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.zIndex = '-9999';
-    container.style.width = '600px'; // Fixed width
-    container.style.padding = '20px';
+    container.style.top = '-9999px';
+    container.style.left = '-9999px';
+    container.style.width = '640px';
     container.style.background = '#ffffff';
-    container.style.color = '#000000';
-    
-    // Only render very minimal content to isolate failure
-    container.innerHTML = `<div><h1>Invoice: ${invoice.number}</h1><p>Test Content</p></div>`;
+    container.style.color = '#0f172a';
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.fontSize = '13px';
+    container.style.lineHeight = '1.4';
+    container.style.boxSizing = 'border-box';
+
+    const shopName = isUrdu ? settings.shop_name_ur : settings.shop_name_en;
+    const shopAddress = isUrdu ? settings.shop_address_ur : settings.shop_address_en;
+    const itemsHtml = invoice.items.map(item => `
+      <tr>
+        <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: ${isUrdu ? 'right' : 'left'};">
+          <div style="font-weight: bold; color: #0f172a;">${isUrdu ? (item.product_name_ur || item.product_name_en) : item.product_name_en}</div>
+          <div style="font-size: 11px; color: #64748b; font-family: monospace;">${item.variant_title}</div>
+        </td>
+        <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: center; font-family: monospace; color: #334155;">${item.qty}</td>
+        <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-family: monospace; font-weight: bold; color: #0f172a;">${formatPKR(item.total)}</td>
+      </tr>
+    `).join('');
+
+    container.innerHTML = `
+      <div dir="${isUrdu ? 'rtl' : 'ltr'}" style="width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border: 1px solid #cbd5e1; border-radius: 8px;">
+        <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 14px; margin-bottom: 14px;">
+          <h1 style="font-size: 22px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">${shopName}</h1>
+          <p style="font-size: 12px; color: #475569; margin: 0 0 4px 0;">${shopAddress}</p>
+          <p style="font-size: 12px; color: #0f172a; font-family: monospace; font-weight: bold; margin: 0;">Phone: ${settings.shop_phone}</p>
+          ${invoice.status === 'cancelled' ? '<div style="margin-top: 8px; padding: 4px; background: #fee2e2; color: #b91c1c; font-weight: bold; font-size: 11px;">*** CANCELLED INVOICE ***</div>' : ''}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #334155; margin-bottom: 14px; background: #f8fafc; padding: 10px; border-radius: 6px;">
+          <div>
+            <div style="margin-bottom: 3px;"><strong>Invoice #:</strong> <span style="font-family: monospace; font-weight: bold;">${invoice.number}</span></div>
+            <div><strong>Date:</strong> ${new Date(invoice.date).toLocaleString()}</div>
+          </div>
+          <div style="text-align: ${isUrdu ? 'left' : 'right'};">
+            <div style="margin-bottom: 3px;"><strong>Customer:</strong> ${invoice.customer_name || 'Walk-in'}</div>
+            <div><strong>Served By:</strong> ${invoice.user_name}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px;">
+          <thead>
+            <tr style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+              <th style="padding: 6px; text-align: ${isUrdu ? 'right' : 'left'}; border-bottom: 2px solid #cbd5e1;">Item</th>
+              <th style="padding: 6px; text-align: center; border-bottom: 2px solid #cbd5e1; width: 50px;">Qty</th>
+              <th style="padding: 6px; text-align: right; border-bottom: 2px solid #cbd5e1; width: 90px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div style="margin-left: auto; width: 240px; font-size: 12px; color: #334155; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; padding: 3px 0;">
+            <span>Subtotal:</span>
+            <span style="font-family: monospace; font-weight: 600;">${formatPKR(invoice.subtotal)}</span>
+          </div>
+          ${invoice.discount > 0 ? `
+          <div style="display: flex; justify-content: space-between; padding: 3px 0; color: #047857;">
+            <span>Discount:</span>
+            <span style="font-family: monospace; font-weight: 600;">- ${formatPKR(invoice.discount)}</span>
+          </div>` : ''}
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 2px solid #0f172a; font-weight: bold; font-size: 14px; color: #0f172a;">
+            <span>Grand Total:</span>
+            <span style="font-family: monospace;">${formatPKR(invoice.total)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 3px 0;">
+            <span>Paid (${invoice.payment_method}):</span>
+            <span style="font-family: monospace; font-weight: bold; color: #0f172a;">${formatPKR(invoice.paid)}</span>
+          </div>
+          ${invoice.balance > 0 ? `
+          <div style="display: flex; justify-content: space-between; padding: 5px 6px; background: #fee2e2; color: #b91c1c; border-radius: 4px; font-weight: bold; margin-top: 4px;">
+            <span>Balance Due:</span>
+            <span style="font-family: monospace;">${formatPKR(invoice.balance)}</span>
+          </div>` : `
+          <div style="text-align: center; color: #047857; font-weight: bold; font-size: 11px; margin-top: 4px;">✓ FULLY PAID</div>
+          `}
+        </div>
+
+        <div style="text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 12px; font-size: 10px; color: #64748b;">
+          <p style="margin: 0 0 3px 0;">${isUrdu ? settings.receipt_footer_ur : settings.receipt_footer_en}</p>
+          <p style="font-weight: bold; color: #0f172a; margin: 0;">*** THANK YOU FOR YOUR BUSINESS ***</p>
+        </div>
+      </div>
+    `;
 
     document.body.appendChild(container);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
       const canvas = await html2canvas(container, {
-        scale: 1,
-        logging: true
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
       });
       return canvas;
     } catch (err: any) {
