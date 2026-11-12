@@ -26,36 +26,41 @@
             hasBooted = true;
             window.__APP_BOOTED__ = true;
             console.log('Static host mode: bootstrapping precompiled bundle...');
+            var pathname = window.location.pathname;
+            var baseDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+            var jsUrl = baseDir + 'assets/app.js';
+            var cssUrl = baseDir + 'assets/app.css';
+
             var s = document.createElement('script');
             s.type = 'module';
             s.crossOrigin = 'anonymous';
-            s.src = './assets/app.js';
+            s.src = jsUrl;
             document.head.appendChild(s);
 
             var l = document.createElement('link');
             l.rel = 'stylesheet';
             l.crossOrigin = 'anonymous';
-            l.href = './assets/app.css';
+            l.href = cssUrl;
             document.head.appendChild(l);
           }
         }
 
         window.addEventListener('error', function(e) {
-          if (e.filename && e.filename.indexOf('main.tsx') !== -1) {
+          if (e.filename && (e.filename.indexOf('main.tsx') !== -1 || e.filename.indexOf('src/') !== -1)) {
             loadFallbackBundle();
           }
         }, true);
 
-        // If running directly on GitHub Pages or static host where main.tsx cannot compile
+        // If running directly on GitHub Pages or static host
         if (window.location.hostname.indexOf('github.io') !== -1) {
           setTimeout(loadFallbackBundle, 100);
         } else {
-          setTimeout(loadFallbackBundle, 600);
+          setTimeout(loadFallbackBundle, 1500);
         }
       })();
     </script>
-    <script type="module" crossorigin src="./assets/index-DmzXHPTo.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-TBIt_jPs.css">
+    <script type="module" crossorigin src="./assets/index-BHwpanoR.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CF2upU_h.css">
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root">

@@ -45,6 +45,11 @@
           }
         }
 
+        var isDevHost =
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.hostname.indexOf('ais-dev-') !== -1;
+
         window.addEventListener('error', function(e) {
           if (e.filename && (e.filename.indexOf('main.tsx') !== -1 || e.filename.indexOf('src/') !== -1)) {
             loadFallbackBundle();
@@ -54,8 +59,8 @@
         // If running directly on GitHub Pages or static host
         if (window.location.hostname.indexOf('github.io') !== -1) {
           setTimeout(loadFallbackBundle, 100);
-        } else {
-          setTimeout(loadFallbackBundle, 1500);
+        } else if (!isDevHost) {
+          setTimeout(loadFallbackBundle, 3500);
         }
       })();
     </script>
