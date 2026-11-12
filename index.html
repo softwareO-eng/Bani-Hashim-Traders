@@ -14,46 +14,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-
-    <!-- Smart Static Hosting Bootloader: Ensures the app starts immediately on GitHub Pages -->
-    <script>
-      (function() {
-        var hasBooted = false;
-        function loadFallbackBundle() {
-          if (hasBooted || window.__APP_BOOTED__) return;
-          var root = document.getElementById('root');
-          if (root && root.querySelector('.initial-static-loader')) {
-            hasBooted = true;
-            window.__APP_BOOTED__ = true;
-            console.log('Static host mode: bootstrapping precompiled bundle...');
-            var s = document.createElement('script');
-            s.type = 'module';
-            s.crossOrigin = 'anonymous';
-            s.src = './assets/app.js';
-            document.head.appendChild(s);
-
-            var l = document.createElement('link');
-            l.rel = 'stylesheet';
-            l.crossOrigin = 'anonymous';
-            l.href = './assets/app.css';
-            document.head.appendChild(l);
-          }
-        }
-
-        window.addEventListener('error', function(e) {
-          if (e.filename && e.filename.indexOf('main.tsx') !== -1) {
-            loadFallbackBundle();
-          }
-        }, true);
-
-        // If running directly on GitHub Pages or static host where main.tsx cannot compile
-        if (window.location.hostname.indexOf('github.io') !== -1) {
-          setTimeout(loadFallbackBundle, 100);
-        } else {
-          setTimeout(loadFallbackBundle, 600);
-        }
-      })();
-    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root">
