@@ -126,19 +126,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
     `;
 
     document.body.appendChild(container);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 350));
 
     try {
       const canvas = await html2canvas(container, {
         scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true
+        logging: true,
+        useCORS: false,
+        allowTaint: true,
+        foreignObjectRendering: false
       });
       return canvas;
     } catch (err: any) {
       console.error('Canvas generation error:', err);
-      throw err;
+      throw new Error(err?.message || err?.toString() || 'Canvas rendering failed');
     } finally {
       document.body.removeChild(container);
     }
@@ -158,7 +159,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       document.body.removeChild(link);
     } catch (err: any) {
       console.error('Image generation failed', err);
-      alert('Error: ' + (err?.message || err?.toString() || 'Unknown error'));
+      alert('Error: ' + (err?.message || err?.toString() || JSON.stringify(err) || 'Unknown error'));
     } finally {
       setIsGenerating(false);
     }
