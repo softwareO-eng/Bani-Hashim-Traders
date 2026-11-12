@@ -108,6 +108,38 @@
         "shop_address_en": { "type": "string" },
         "shop_address_ur": { "type": "string" }
       }
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Customer payment and Udhaar recovery record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoice_id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "supplier_id": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "date": { "type": "string" },
+        "note": { "type": "string" },
+        "user_id": { "type": "string" }
+      },
+      "required": ["id", "amount", "method", "date"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Shop operating expense entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "date": { "type": "string" },
+        "note": { "type": "string" },
+        "user_id": { "type": "string" }
+      },
+      "required": ["id", "category", "amount", "method", "date"]
     }
   },
   "firestore": {
@@ -126,6 +158,14 @@
     "/invoices/{invoiceId}": {
       "schema": "#/entities/Invoice",
       "description": "Completed and cancelled sales invoices"
+    },
+    "/payments/{paymentId}": {
+      "schema": "#/entities/Payment",
+      "description": "Customer Udhaar payments and recoveries"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "#/entities/Expense",
+      "description": "Shop operating expenses"
     },
     "/stockMoves/{moveId}": {
       "schema": "#/entities/StockMove",

@@ -36,6 +36,18 @@ service cloud.firestore {
       allow create, update, delete: if isValidId(invoiceId);
     }
 
+    // Payments collection (Udhaar recoveries)
+    match /payments/{paymentId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(paymentId);
+    }
+
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(expenseId);
+    }
+
     // Stock movements audit log
     match /stockMoves/{moveId} {
       allow read: if true;

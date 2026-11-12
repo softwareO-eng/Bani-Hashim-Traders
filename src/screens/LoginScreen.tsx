@@ -158,7 +158,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       <div className="mt-4 text-center text-slate-500 text-xs">
-        PakMobile POS v1.0 • Built with Free Stack (Vercel + Supabase)
+        Mobile Accessories Shop Management System
       </div>
     </div>
   );

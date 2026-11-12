@@ -2,17 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { storage } from '../services/storage';
 import { ShopSettings } from '../types';
-import { testFirebaseConnection } from '../services/firebase';
 import { 
-  Settings, Save, Download, Database, 
-  Check, RefreshCw, AlertCircle, FileSpreadsheet, Trash2, CloudCheck
+  Settings, Save, Download, 
+  Check, FileSpreadsheet, Trash2
 } from 'lucide-react';
 
 export const SettingsScreen: React.FC = () => {
   const { t, isRTL } = useLanguage();
   const [settings, setSettings] = useState<ShopSettings>(storage.getSettings());
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [firebaseStatus, setFirebaseStatus] = useState<string | null>(null);
   const isDirtyRef = useRef(false);
 
   useEffect(() => {
@@ -35,23 +33,6 @@ export const SettingsScreen: React.FC = () => {
     isDirtyRef.current = false;
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
-  };
-
-  const handleTestFirebase = async () => {
-    setFirebaseStatus('testing');
-    const ok = await testFirebaseConnection();
-    if (ok) {
-      setFirebaseStatus('connected');
-    } else {
-      setFirebaseStatus('ready');
-    }
-  };
-
-  const handleManualSyncFirebase = async () => {
-    setFirebaseStatus('syncing');
-    await storage.syncFromFirebase();
-    setFirebaseStatus('synced');
-    setTimeout(() => setFirebaseStatus(null), 3000);
   };
 
   const handleExportJSON = () => {
@@ -98,7 +79,7 @@ export const SettingsScreen: React.FC = () => {
             <span>{t('settings.title')}</span>
           </h2>
           <p className="text-xs text-slate-500">
-            {isRTL ? 'دکان کی تفصیلات، پرنٹر سیٹنگز اور فائر بیس کلاؤڈ ڈیٹا بیس' : 'Shop receipt details, printer preferences, and Firebase Firestore cloud database'}
+            {isRTL ? 'دکان کی تفصیلات، انوائس کی شرائط، پرنٹر سیٹنگز اور ڈیٹا بیک اپ' : 'Shop details, invoice policies, printer preferences, and data backup'}
           </p>
         </div>
 
@@ -225,54 +206,6 @@ export const SettingsScreen: React.FC = () => {
                 placeholder="مثلاً: واپسی کی پالیسی"
               />
             </div>
-          </div>
-        </div>
-
-        {/* FIREBASE FIRESTORE BACKEND (PROMPT: "Remove supbase and add firebase in backend") */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Database className="w-4 h-4 text-amber-500" />
-              <span>Firebase Firestore Cloud Backend</span>
-            </h3>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Active Firebase</span>
-            </span>
-          </div>
-
-          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1.5 text-xs text-amber-900">
-            <div className="flex justify-between">
-              <span className="text-slate-600 font-medium">Firebase Project ID:</span>
-              <span className="font-mono font-bold text-slate-900">{settings.firebase_project_id || 'resounding-sublime-7bvhw'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600 font-medium">Firestore Database ID:</span>
-              <span className="font-mono font-bold text-slate-900 truncate max-w-xs">{settings.firebase_database_id || 'ai-studio-pakmobilepos-5fef3712-5a48-4a22-aeb2-fcf8bf2608b8'}</span>
-            </div>
-            <div className="flex justify-between pt-1 border-t border-amber-200/60">
-              <span className="text-slate-600 font-medium">Offline Resilience:</span>
-              <span className="font-semibold text-emerald-800">Enabled (Automatic Local Cache + Cloud Sync)</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleTestFirebase}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            >
-              <span>{firebaseStatus === 'testing' ? 'Testing...' : firebaseStatus === 'connected' ? '✓ Firebase Connected!' : 'Test Firebase Connection'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleManualSyncFirebase}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${firebaseStatus === 'syncing' ? 'animate-spin' : ''}`} />
-              <span>{firebaseStatus === 'syncing' ? 'Syncing...' : firebaseStatus === 'synced' ? '✓ Synced!' : 'Sync from Cloud Firestore'}</span>
-            </button>
           </div>
         </div>
 

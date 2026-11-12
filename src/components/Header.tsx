@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
             <p className="text-[11px] text-slate-500 hidden sm:block">
-              {isRTL ? 'موبائل اسیسریز شاپ مینیجمنٹ سسٹم • پاکستان' : 'Mobile Accessories Shop POS • Free Tier Stack'}
+              {isRTL ? 'موبائل اسیسریز شاپ مینیجمنٹ سسٹم • پاکستان' : 'Mobile Accessories Shop POS'}
             </p>
           </div>
         </div>

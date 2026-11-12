@@ -215,7 +215,7 @@ class StorageService {
   // --- Firebase Background Sync ---
   private async syncToFirestore(collectionName: string, id: string, data: any) {
     try {
-      if (!db || !this.db.settings.firebase_sync_enabled) return;
+      if (!db) return;
       await setDoc(doc(db, collectionName, id), data, { merge: true });
     } catch (e) {
       console.warn(`Firestore sync note for ${collectionName}/${id}:`, e);
@@ -224,7 +224,7 @@ class StorageService {
 
   private async deleteFromFirestore(collectionName: string, id: string) {
     try {
-      if (!db || !this.db.settings.firebase_sync_enabled) return;
+      if (!db) return;
       await deleteDoc(doc(db, collectionName, id));
     } catch (e) {
       console.warn(`Firestore delete note for ${collectionName}/${id}:`, e);
@@ -270,6 +270,12 @@ class StorageService {
       const firestoreExpenses: Expense[] = [];
       expSnap.forEach(d => firestoreExpenses.push(d.data() as Expense));
       this.db.expenses = firestoreExpenses;
+
+      // Sync stockMoves
+      const smSnap = await getDocs(collection(db, 'stockMoves'));
+      const firestoreStockMoves: StockMove[] = [];
+      smSnap.forEach(d => firestoreStockMoves.push(d.data() as StockMove));
+      this.db.stockMoves = firestoreStockMoves;
 
       // Sync shop settings
       const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
@@ -644,6 +650,7 @@ class StorageService {
 
     customer.balance = Math.max(0, customer.balance - amount);
     this.db.payments.push(payment);
+    this.syncToFirestore('payments', payment.id, payment);
     this.syncToFirestore('customers', customer.id, customer);
     this.persist();
     return payment;
