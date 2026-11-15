@@ -65,8 +65,9 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ currentUser }) => 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
+    const shopSlug = (storage.getSettings().shop_name_en || 'Shop').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Shop';
     link.href = url;
-    link.setAttribute('download', `Bani_Hashim_Traders_PL_${timeframe}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `${shopSlug}_PL_${timeframe}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

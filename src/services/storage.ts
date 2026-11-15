@@ -85,13 +85,13 @@ export const INITIAL_CATEGORIES: Category[] = [
 ];
 
 export const INITIAL_SETTINGS: ShopSettings = {
-  shop_name_en: 'Bani Hashim Traders',
-  shop_name_ur: 'بنی ہاشم ٹریڈرز',
-  shop_address_en: 'Shop # 18, Basement, Hafeez Center, Gulberg III, Lahore',
-  shop_address_ur: 'دکان نمبر 18، بیسمنٹ، حفیظ سینٹر، مین بلیوارڈ گلبرگ، لاہور',
-  shop_phone: '0300-4567890',
-  shop_whatsapp: '0300-4567890',
-  invoice_prefix: 'BHT-2026',
+  shop_name_en: 'My Mobile Shop',
+  shop_name_ur: 'میری موبائل شاپ',
+  shop_address_en: 'Main Market, City',
+  shop_address_ur: 'مین مارکیٹ، شہر',
+  shop_phone: '0300-0000000',
+  shop_whatsapp: '0300-0000000',
+  invoice_prefix: 'INV-2026',
   tax_rate: 0,
   currency_symbol: 'Rs',
   receipt_footer_en: 'Thank you for shopping with us!',
@@ -153,9 +153,30 @@ class StorageService {
     }
 
     if (this.db.settings) {
+      let settingsChanged = false;
       if (this.db.settings.receipt_footer_en?.includes('Accessories')) {
         this.db.settings.receipt_footer_en = 'Thank you for shopping with us!';
         this.db.settings.receipt_footer_ur = 'ہمارے ساتھ خریداری کرنے کا شکریہ!';
+        settingsChanged = true;
+      }
+      if (this.db.settings.shop_name_en === 'Bani Hashim Traders') {
+        this.db.settings.shop_name_en = 'My Mobile Shop';
+        settingsChanged = true;
+      }
+      if (this.db.settings.shop_name_ur === 'بنی ہاشم ٹریڈرز') {
+        this.db.settings.shop_name_ur = 'میری موبائل شاپ';
+        settingsChanged = true;
+      }
+      if (this.db.settings.shop_address_en?.includes('Hafeez Center')) {
+        this.db.settings.shop_address_en = 'Main Market, City';
+        this.db.settings.shop_address_ur = 'مین مارکیٹ، شہر';
+        settingsChanged = true;
+      }
+      if (this.db.settings.invoice_prefix === 'BHT-2026') {
+        this.db.settings.invoice_prefix = 'INV-2026';
+        settingsChanged = true;
+      }
+      if (settingsChanged) {
         this.persist();
       }
     }
@@ -280,7 +301,15 @@ class StorageService {
       // Sync shop settings
       const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
       if (settingsSnap.exists()) {
-        this.db.settings = { ...this.db.settings, ...(settingsSnap.data() as Partial<ShopSettings>) };
+        const remote = { ...(settingsSnap.data() as Partial<ShopSettings>) };
+        if (remote.shop_name_en === 'Bani Hashim Traders') remote.shop_name_en = 'My Mobile Shop';
+        if (remote.shop_name_ur === 'بنی ہاشم ٹریڈرز') remote.shop_name_ur = 'میری موبائل شاپ';
+        if (remote.shop_address_en?.includes('Hafeez Center')) {
+          remote.shop_address_en = 'Main Market, City';
+          remote.shop_address_ur = 'مین مارکیٹ، شہر';
+        }
+        if (remote.invoice_prefix === 'BHT-2026') remote.invoice_prefix = 'INV-2026';
+        this.db.settings = { ...this.db.settings, ...remote };
       }
 
       this.persist();
@@ -319,7 +348,15 @@ class StorageService {
 
     const unsubSettings = onSnapshot(doc(activeDb, 'settings', 'config'), (snapshot) => {
       if (snapshot.exists()) {
-        this.db.settings = { ...this.db.settings, ...(snapshot.data() as Partial<ShopSettings>) };
+        const remote = { ...(snapshot.data() as Partial<ShopSettings>) };
+        if (remote.shop_name_en === 'Bani Hashim Traders') remote.shop_name_en = 'My Mobile Shop';
+        if (remote.shop_name_ur === 'بنی ہاشم ٹریڈرز') remote.shop_name_ur = 'میری موبائل شاپ';
+        if (remote.shop_address_en?.includes('Hafeez Center')) {
+          remote.shop_address_en = 'Main Market, City';
+          remote.shop_address_ur = 'مین مارکیٹ، شہر';
+        }
+        if (remote.invoice_prefix === 'BHT-2026') remote.invoice_prefix = 'INV-2026';
+        this.db.settings = { ...this.db.settings, ...remote };
         this.persist();
         onDataUpdate();
       }

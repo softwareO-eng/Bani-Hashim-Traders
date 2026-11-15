@@ -662,7 +662,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
       setIsGenerating(true);
       const canvas = generateCanvas();
       const pdf = buildPdfDoc(canvas);
-      pdf.save(`Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`);
+      const shopSlug = (settings.shop_name_en || 'Shop').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Shop';
+      pdf.save(`Invoice_${invoice.number}_${shopSlug}.pdf`);
     } catch (err: any) {
       console.error('PDF generation failed', err);
       alert('Failed to generate PDF document: ' + (err?.message || String(err)));
@@ -688,11 +689,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         kind === 'pdf'
           ? buildPdfDoc(canvas).output('blob')
           : dataURLToBlob(canvas.toDataURL('image/png'));
+      const shopSlug = (settings.shop_name_en || 'Shop').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Shop';
       const filename =
         kind === 'pdf'
-          ? `Invoice_${invoice.number}_Bani_Hashim_Traders.pdf`
+          ? `Invoice_${invoice.number}_${shopSlug}.pdf`
           : `Invoice_${invoice.number}.png`;
       const mimeType = kind === 'pdf' ? 'application/pdf' : 'image/png';
+      const activeShopName = (isUrdu ? settings.shop_name_ur : settings.shop_name_en) || settings.shop_name_en || 'Shop';
 
       if (typeof navigator.share === 'function' && typeof File === 'function') {
         const file = new File([fileBlob], filename, { type: mimeType });
@@ -700,10 +703,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ invoice, onClose }) 
         if (canShareFiles) {
           try {
             await navigator.share({
-              title: `Invoice ${invoice.number} - Bani Hashim Traders`,
+              title: `Invoice ${invoice.number} - ${settings.shop_name_en || 'Shop'}`,
               text: isUrdu
-                ? `بنی ہاشم ٹریڈرز - انوائس نمبر ${invoice.number}`
-                : `Bani Hashim Traders - Invoice #${invoice.number}`,
+                ? `${activeShopName} - انوائس نمبر ${invoice.number}`
+                : `${activeShopName} - Invoice #${invoice.number}`,
               files: [file]
             });
             return;
